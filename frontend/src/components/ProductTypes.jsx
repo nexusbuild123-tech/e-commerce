@@ -3,10 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 const ProductTypes = () => {
   const { productId } = useParams();
 
-  // Mock data: Kis product ID ke andar kaun-kaun se types/variants honge
+  // Mock data mapping via dynamic category IDs incoming from Home
   const productVariantsData = {
     "1": {
-      parentName: "LG 1.5 Ton AC",
+      parentName: "Air Conditioners",
       types: [
         { id: "lg-5star-split", name: "LG 1.5 Ton 5 Star Inverter Split AC", specs: "Copper Condenser, Convertible 5-in-1", price: "₹45,000", image: "https://via.placeholder.com/400x300?text=LG+5+Star+Split" },
         { id: "lg-3star-split", name: "LG 1.5 Ton 3 Star Inverter Split AC", specs: "Dual Inverter, HD Filter with Anti-Virus Protection", price: "₹38,500", image: "https://via.placeholder.com/400x300?text=LG+3+Star+Split" },
@@ -14,21 +14,21 @@ const ProductTypes = () => {
       ]
     },
     "2": {
-      parentName: "Samsung 253L Fridge",
+      parentName: "Refrigerators",
       types: [
         { id: "sam-double-door", name: "Samsung 253L 3 Star Double Door Refrigerator", specs: "Digital Inverter, Frost Free", price: "₹24,500", image: "https://via.placeholder.com/400x300?text=Samsung+Double+Door" },
         { id: "sam-curd-maestro", name: "Samsung 253L Curd Maestro Double Door", specs: "Make curd easily, Convertible 5-in-1", price: "₹28,990", image: "https://via.placeholder.com/400x300?text=Curd+Maestro" }
       ]
     },
     "3": {
-      parentName: "Bosch 7kg Washing Machine",
+      parentName: "Washing Machines",
       types: [
         { id: "bosch-front-load", name: "Bosch 7kg 5 Star Front Load Machine", specs: "EcoSilence Drive, AntiTangle Feature", price: "₹29,990", image: "https://via.placeholder.com/400x300?text=Bosch+Front+Load" },
         { id: "bosch-top-load", name: "Bosch 7kg Fully Automatic Top Load", specs: "PowerWave Wash System, Soft Closing Lid", price: "₹18,490", image: "https://via.placeholder.com/400x300?text=Bosch+Top+Load" }
       ]
     },
     "4": {
-      parentName: "Bajaj 17L Microwave",
+      parentName: "Microwaves",
       types: [
         { id: "bajaj-solo", name: "Bajaj 17L Solo Microwave Oven", specs: "Mechanical Knobs, 5 Power Levels", price: "₹5,299", image: "https://via.placeholder.com/400x300?text=Bajaj+Solo" },
         { id: "bajaj-grill", name: "Bajaj 17L Grill Microwave Oven", specs: "Tact-key controls, Auto Cook Menus", price: "₹7,499", image: "https://via.placeholder.com/400x300?text=Bajaj+Grill" }
@@ -36,7 +36,7 @@ const ProductTypes = () => {
     }
   };
 
-  // Agar routing me dynamic id na mile to product 1 default set hoga
+  // Fallback pattern if category data index is empty or matches outer categories
   const currentProduct = productVariantsData[productId] || productVariantsData["1"];
 
   return (

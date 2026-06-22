@@ -12,7 +12,8 @@ const ProductCard = ({ product }) => {
       )}
 
       {/* Image Container with Hover Zoom */}
-      <Link to={`/product/${product.id}`} className="relative h-60 w-full overflow-hidden bg-gray-50 flex items-center justify-center p-4">
+      {/* FIXED: PURANE PATH KO /product-types ME BADLA */}
+      <Link to={`/product-types/${product.id}`} className="relative h-60 w-full overflow-hidden bg-gray-50 flex items-center justify-center p-4">
         <img 
           src={product.image} 
           alt={product.name} 
@@ -35,7 +36,8 @@ const ProductCard = ({ product }) => {
           </span>
         </div>
         
-        <Link to={`/product/${product.id}`}>
+        {/* FIXED: PURANE PATH KO /product-types ME BADLA */}
+        <Link to={`/product-types/${product.id}`}>
           <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
             {product.name}
           </h3>
@@ -47,8 +49,9 @@ const ProductCard = ({ product }) => {
         
         {/* MODIFIED: Removed Price & Added Premium "Explore Now" Button */}
         <div className="mt-auto pt-4 border-t border-gray-100">
+          {/* FIXED: PURANE PATH KO /product-types ME BADLA */}
           <Link 
-            to={`/product/${product.id}`}
+            to={`/product-types/${product.id}`}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all duration-300 transform hover:-translate-y-0.5"
           >
             <span>Explore Now</span>

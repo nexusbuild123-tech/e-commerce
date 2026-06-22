@@ -20,10 +20,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             
-            {/* 1. Yeh card click par variants list dikhayega */}
-            <Route path="/product/:productId" element={<ProductTypes />} />
+            {/* FIXED: Path ko badal kar /product-types/:productId kiya taaki Home component ke links se match kare */}
+            <Route path="/product-types/:productId" element={<ProductTypes />} />
             
-            {/* FIXED: Path ko badal kar /product-detail/:id kiya taaki detail page load ho sake */}
+            {/* Yeh detail page load karega jab ProductTypes me click hoga */}
             <Route path="/product-detail/:id" element={<ProductDetail />} />
             
             <Route path="/cart" element={<Cart />} />
