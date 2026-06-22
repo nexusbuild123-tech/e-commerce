@@ -274,6 +274,117 @@ app.delete("/admin/delete-banner/:banner_id", authenticateApiKey, async (req, re
     }
 });
 
+
+// ==========================================
+// PRODUCT CARD MANAGEMENT ROUTES (CRUD)
+// ==========================================
+
+// 1. Fetch All Products (Frontend display ke liye)
+app.get("/product-cards", async (req, res) => {
+    try {
+        const [products] = await pool.execute("SELECT * FROM product_cards ORDER BY id DESC");
+        return res.status(200).json({ status: "success", products });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 2. Add New Product Card
+app.post("/admin/add-product-card", authenticateApiKey, async (req, res) => {
+    const { name, category, description, image, discount, rating } = req.body;
+
+    if (!name || !category || !image) {
+        return res.status(400).json({ status: "error", message: "Name, category, and image are required!" });
+    }
+
+    try {
+        const sql = "INSERT INTO product_cards (name, category, description, image, discount, rating) VALUES (?, ?, ?, ?, ?, ?)";
+        await pool.execute(sql, [name, category, description || '', image, discount || null, rating || "4.5"]);
+        return res.status(201).json({ status: "success", message: "Product card added successfully!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 3. Update Existing Product Card
+app.put("/admin/update-product-card/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { name, category, description, image, discount, rating } = req.body;
+
+    if (!name || !category || !image) {
+        return res.status(400).json({ status: "error", message: "Name, category, and image are required!" });
+    }
+
+    try {
+        const sql = "UPDATE product_cards SET name=?, category=?, description=?, image=?, discount=?, rating=? WHERE id=?";
+        await pool.execute(sql, [name, category, description || '', image, discount || null, rating || "4.5", id]);
+        return res.status(200).json({ status: "success", message: "Product card updated successfully!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 4. Delete Product Card
+app.delete("/admin/delete-product-card/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        await pool.execute("DELETE FROM product_cards WHERE id = ?", [id]);
+        return res.status(200).json({ status: "success", message: "Product card deleted successfully!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+
+// --- SHOP CATEGORY MANAGEMENT ROUTES ---
+
+// 1. Fetch All Categories
+app.get("/categories", async (req, res) => {
+    try {
+        const [categories] = await pool.execute("SELECT * FROM shop_categories ORDER BY id DESC");
+        return res.status(200).json({ status: "success", categories });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 2. Add New Category
+app.post("/admin/add-category", authenticateApiKey, async (req, res) => {
+    const { name, slug, image } = req.body;
+    if (!name || !slug || !image) return res.status(400).json({ status: "error", message: "All fields required!" });
+
+    try {
+        await pool.execute("INSERT INTO shop_categories (name, slug, image) VALUES (?, ?, ?)", [name, slug, image]);
+        return res.status(201).json({ status: "success", message: "Category added!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 3. Update Category
+app.put("/admin/update-category/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { name, slug, image } = req.body;
+    try {
+        await pool.execute("UPDATE shop_categories SET name=?, slug=?, image=? WHERE id=?", [name, slug, image, id]);
+        return res.status(200).json({ status: "success", message: "Category updated!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 4. Delete Category
+app.delete("/admin/delete-category/:id", authenticateApiKey, async (req, res) => {
+    try {
+        await pool.execute("DELETE FROM shop_categories WHERE id = ?", [req.params.id]);
+        return res.status(200).json({ status: "success", message: "Category deleted!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+
 // START SERVER
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -22,7 +22,6 @@ const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [dbBanners, setDbBanners] = useState([]);
 
-  // Fetch Banners from API with Cache-Buster & Tab Focus Sync
   useEffect(() => {
     const fetchBanners = async () => {
       try {
@@ -39,7 +38,6 @@ const Home = () => {
     };
 
     fetchBanners();
-
     window.addEventListener("focus", fetchBanners);
     return () => window.removeEventListener("focus", fetchBanners);
   }, []);
@@ -57,12 +55,29 @@ const Home = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev === activeBanners.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? activeBanners.length - 1 : prev - 1));
 
-  const [products] = useState([
-    { id: 1, name: "LG 1.5 Ton 5 Star AC", category: "Air Conditioners", price: 45000, image: "https://via.placeholder.com/400x300?text=LG+AC" },
-    { id: 2, name: "Samsung 253L Fridge", category: "Refrigerators", price: 24500, image: "https://via.placeholder.com/400x300?text=Samsung+Fridge" },
-    { id: 3, name: "Bosch 7kg Washing Machine", category: "Washing Machines", price: 29990, image: "https://via.placeholder.com/400x300?text=Bosch" },
-    { id: 4, name: "Bajaj 17L Microwave", category: "Microwaves", price: 5299, image: "https://via.placeholder.com/400x300?text=Bajaj" }
-  ]);
+  // --- CHANGED: DYNAMIC PRODUCTS LOGIC (LIVE FROM DATABASE) ---
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/product-cards?t=${Date.now()}`, {
+          cache: "no-store"
+        });
+        const data = await response.json();
+        if (data.status === "success") {
+          setProducts(data.products); // Setting live database products
+        }
+      } catch (error) {
+        console.error("Failed to load products from DB", error);
+      }
+    };
+
+    fetchProducts();
+    // Tab switch karne par auto data sync hone ke liye
+    window.addEventListener("focus", fetchProducts);
+    return () => window.removeEventListener("focus", fetchProducts);
+  }, []);
 
   return (
     <div className="bg-gray-100 min-h-screen pb-0 animate-fade-in flex flex-col">
@@ -98,7 +113,6 @@ const Home = () => {
           </div>
           <div ref={categoryScrollRef} className="flex overflow-x-auto hide-scrollbar gap-6 pb-8 scroll-smooth">
             {categoriesTree.map((cat) => (
-              /* Route path updated to product-types to open the variants catalog */
               <Link to={`/product-types/${cat.id}`} key={cat.id} className="flex-shrink-0 w-40 sm:w-48 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center group">
                 <div className="w-20 h-20 mb-4 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
                   <img src={cat.image} alt={cat.name} className="w-12 h-12 object-contain filter group-hover:brightness-0 group-hover:invert transition-all" />
@@ -115,9 +129,16 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 lg:px-0 mb-12 flex-grow">
         <div className="bg-white p-4 sm:p-6 rounded-sm shadow-sm border border-gray-100">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Trending Offers</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => <ProductCard key={product.id} product={product} />)}
-          </div>
+          
+          {products.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">No products found. Add some from the admin panel!</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
