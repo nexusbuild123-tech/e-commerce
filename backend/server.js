@@ -385,6 +385,71 @@ app.delete("/admin/delete-category/:id", authenticateApiKey, async (req, res) =>
 });
 
 
+
+// ==========================================
+// PRODUCT TYPES MANAGEMENT ROUTES (CRUD)
+// ==========================================
+
+// 1. Fetch All Product Types
+app.get("/product-types", async (req, res) => {
+    try {
+        const [productTypes] = await pool.execute("SELECT * FROM product_types ORDER BY id DESC");
+        return res.status(200).json({ status: "success", productTypes });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 2. Add New Product Type
+app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
+    const { name, slug, description } = req.body;
+
+    if (!name || !slug) {
+        return res.status(400).json({ status: "error", message: "Name and Slug fields are required!" });
+    }
+
+    try {
+        const sql = "INSERT INTO product_types (name, slug, description) VALUES (?, ?, ?)";
+        await pool.execute(sql, [name, slug, description || '']);
+        return res.status(201).json({ status: "success", message: "Product Type added successfully!" });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ status: "error", message: "This slug or type already exists!" });
+        }
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 3. Update Existing Product Type
+app.put("/admin/update-product-type/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { name, slug, description } = req.body;
+
+    if (!name || !slug) {
+        return res.status(400).json({ status: "error", message: "Name and Slug fields are required!" });
+    }
+
+    try {
+        const sql = "UPDATE product_types SET name=?, slug=?, description=? WHERE id=?";
+        await pool.execute(sql, [name, slug, description || '', id]);
+        return res.status(200).json({ status: "success", message: "Product Type updated successfully!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 4. Delete Product Type
+app.delete("/admin/delete-product-type/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        await pool.execute("DELETE FROM product_types WHERE id = ?", [id]);
+        return res.status(200).json({ status: "success", message: "Product Type permanently deleted!" });
+    } catch (err) {
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
 // START SERVER
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

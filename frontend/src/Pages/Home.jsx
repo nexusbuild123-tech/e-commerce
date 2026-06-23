@@ -3,22 +3,11 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 
 const Home = () => {
-  const categoriesTree = [
-    { id: 1, name: "Air Conditioners", slug: "air-conditioners", image: "https://via.placeholder.com/100?text=AC", subCategories: [{ name: "Split ACs", slug: "split-acs", children: ["1 Ton", "1.5 Ton", "2 Ton"] }, { name: "Window ACs", slug: "window-acs", children: ["1 Ton", "1.5 Ton"] }] },
-    { id: 2, name: "Refrigerators", slug: "refrigerators", image: "https://via.placeholder.com/100?text=Fridge", subCategories: [{ name: "Single Door", slug: "single-door", children: ["Under 200L", "200L - 250L"] }, { name: "Double Door", slug: "double-door", children: ["250L - 300L", "Above 300L"] }] },
-    { id: 3, name: "Washing Machines", slug: "washing-machines", image: "https://via.placeholder.com/100?text=Wash" },
-    { id: 4, name: "Kitchen Appliances", slug: "kitchen", image: "https://via.placeholder.com/100?text=Kitchen" },
-    { id: 5, name: "Microwaves", slug: "microwaves", image: "https://via.placeholder.com/100?text=Oven" },
-    { id: 6, name: "Water Purifiers", slug: "purifiers", image: "https://via.placeholder.com/100?text=RO" },
-    { id: 7, name: "Televisions", slug: "televisions", image: "https://via.placeholder.com/100?text=TV" },
-    { id: 8, name: "Mixer Grinders", slug: "mixers", image: "https://via.placeholder.com/100?text=Mixer" },
-  ];
-
   const categoryScrollRef = useRef(null);
   const scrollLeft = () => categoryScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
   const scrollRight = () => categoryScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
 
-  // --- DYNAMIC BANNER LOGIC ---
+  // --- 1. DYNAMIC BANNER LOGIC ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [dbBanners, setDbBanners] = useState([]);
 
@@ -55,7 +44,33 @@ const Home = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev === activeBanners.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? activeBanners.length - 1 : prev - 1));
 
-  // --- CHANGED: DYNAMIC PRODUCTS LOGIC (LIVE FROM DATABASE) ---
+
+  // --- 2. DYNAMIC CATEGORIES LOGIC (LIVE FROM DATABASE) ---
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/categories?t=${Date.now()}`, {
+          cache: "no-store"
+        });
+        const data = await response.json();
+        if (data.status === "success") {
+          setCategories(data.categories); // Database categories array set kiya
+        }
+      } catch (error) {
+        console.error("Failed to load categories from DB", error);
+      }
+    };
+
+    fetchCategories();
+    // Tab switch karne par auto categories refresh karne ke liye
+    window.addEventListener("focus", fetchCategories);
+    return () => window.removeEventListener("focus", fetchCategories);
+  }, []);
+
+
+  // --- 3. DYNAMIC PRODUCTS LOGIC (LIVE FROM DATABASE) ---
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -66,7 +81,7 @@ const Home = () => {
         });
         const data = await response.json();
         if (data.status === "success") {
-          setProducts(data.products); // Setting live database products
+          setProducts(data.products);
         }
       } catch (error) {
         console.error("Failed to load products from DB", error);
@@ -74,7 +89,6 @@ const Home = () => {
     };
 
     fetchProducts();
-    // Tab switch karne par auto data sync hone ke liye
     window.addEventListener("focus", fetchProducts);
     return () => window.removeEventListener("focus", fetchProducts);
   }, []);
@@ -101,7 +115,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* 2. CATEGORIES */}
+      {/* 2. DYNAMIC CATEGORIES SECTION */}
       <div className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
@@ -111,16 +125,21 @@ const Home = () => {
               <button onClick={scrollRight} className="p-3 rounded-full bg-white border border-gray-200 hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm">&#10095;</button>
             </div>
           </div>
+          
           <div ref={categoryScrollRef} className="flex overflow-x-auto hide-scrollbar gap-6 pb-8 scroll-smooth">
-            {categoriesTree.map((cat) => (
-              <Link to={`/product-types/${cat.id}`} key={cat.id} className="flex-shrink-0 w-40 sm:w-48 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center group">
-                <div className="w-20 h-20 mb-4 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
-                  <img src={cat.image} alt={cat.name} className="w-12 h-12 object-contain filter group-hover:brightness-0 group-hover:invert transition-all" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{cat.name}</h3>
-                <span className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest font-semibold">Explore</span>
-              </Link>
-            ))}
+            {categories.length === 0 ? (
+              <p className="text-gray-400 italic text-center w-full py-4">No categories setup yet.</p>
+            ) : (
+              categories.map((cat) => (
+                <Link to={`/product-types/${cat.id}`} key={cat.id} className="flex-shrink-0 w-40 sm:w-48 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center group">
+                  <div className="w-20 h-20 mb-4 rounded-2xl bg-blue-50 flex items-center justify-center overflow-hidden group-hover:bg-blue-600 transition-colors duration-300 p-2">
+                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover rounded-xl transition-all" />
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">{cat.name}</h3>
+                  <span className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest font-semibold">Explore</span>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -183,7 +202,7 @@ const Home = () => {
               <div>
                 <h3 className="text-gray-400 font-semibold mb-4 text-xs uppercase tracking-wider">Mail Us:</h3>
                 <p className="text-gray-300 leading-relaxed text-xs">
-                  Electra Internet Private Limited, <br/>
+                  CRM Traders, <br/>
                   Buildings Alyssa, Begonia & <br/>
                   Clove Embassy Tech Village, <br/>
                   Outer Ring Road, Devarabeesanahalli Village, <br/>
@@ -194,7 +213,7 @@ const Home = () => {
               <div>
                 <h3 className="text-gray-400 font-semibold mb-4 text-xs uppercase tracking-wider">Registered Office Address:</h3>
                 <p className="text-gray-300 leading-relaxed text-xs">
-                  Electra Internet Private Limited, <br/>
+                  CRM Traders, <br/>
                   Bengaluru, 560103, <br/>
                   Karnataka, India <br/>
                   CIN : U51109KA2012PTC066107 <br/>
@@ -211,7 +230,7 @@ const Home = () => {
               <span className="flex items-center gap-2">🎁 Gift Cards</span>
               <span className="flex items-center gap-2">❓ Help Center</span>
             </div>
-            <p>© 2007-{new Date().getFullYear()} Electra.com</p>
+            <p>© 2007-{new Date().getFullYear()} crmtraders.com</p>
           </div>
 
         </div>
