@@ -4,7 +4,7 @@ import Dashboard from './Components/Dashboard';
 
 const App = () => {
   return (
-    <Router>
+    <Router basename="/admin">
       <Routes>
         {/* Default route ko login par bhej dein */}
         <Route path="/" element={<Navigate to="/admin/login" />} />

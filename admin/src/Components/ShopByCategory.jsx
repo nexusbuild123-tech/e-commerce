@@ -1,5 +1,9 @@
 import { useState } from 'react';
 
+
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 const ShopByCategory = ({
   categories,
   fetchCategories,
@@ -62,8 +66,8 @@ const ShopByCategory = ({
 
     setIsCategoryUploading(true);
     const url = isEditingCategory
-      ? `http://127.0.0.1:5000/admin/update-category/${categoryForm.id}`
-      : "http://127.0.0.1:5000/admin/add-category";
+      ? `${apiUrl}/admin/update-category/${categoryForm.id}`
+      : `${apiUrl}/admin/add-category`;
 
     const method = isEditingCategory ? "PUT" : "POST";
 
@@ -99,7 +103,7 @@ const ShopByCategory = ({
   const handleDeleteCategory = async (id) => {
     if (!window.confirm("Are you sure you want to delete this category permanently?")) return;
     try {
-      const response = await fetch(`http://127.0.0.1:5000/admin/delete-category/${id}`, {
+      const response = await fetch(`${apiUrl}/admin/delete-category/${id}`, {
         method: "DELETE",
         headers: { "x-api-key": "nexusBuild@123+!" },
       });

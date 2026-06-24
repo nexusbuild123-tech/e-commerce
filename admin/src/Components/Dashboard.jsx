@@ -6,6 +6,9 @@ import ManagementPlaceholder from "./ManagementPlaceholder";
 import ShopByCategory from "./ShopByCategory"; 
 import ProductTypes from "./ProductTypes"; 
 
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
@@ -52,7 +55,7 @@ const Dashboard = () => {
   // ==========================================
   const fetchBanners = useCallback(async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/banners?t=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`${apiUrl}/banners?t=${Date.now()}`, { cache: "no-store" });
       const data = await response.json();
       if (data.status === "success") setBanners(data.banners);
     } catch (error) { console.error("Banner fetch failed", error); }
@@ -60,7 +63,7 @@ const Dashboard = () => {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/product-cards?t=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`${apiUrl}/product-cards?t=${Date.now()}`, { cache: "no-store" });
       const data = await response.json();
       if (data.status === "success") setProducts(data.products);
     } catch (error) { console.error("Products fetch failed", error); }
@@ -68,7 +71,7 @@ const Dashboard = () => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/categories?t=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`${apiUrl}/categories?t=${Date.now()}`, { cache: "no-store" });
       const data = await response.json();
       if (data.status === "success") setCategories(data.categories);
     } catch (error) { console.error("Categories fetch failed", error); }
@@ -76,7 +79,7 @@ const Dashboard = () => {
 
   const fetchProductTypes = useCallback(async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/product-types?t=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`${apiUrl}/product-types?t=${Date.now()}`, { cache: "no-store" });
       const data = await response.json();
       if (data.status === "success") setProductTypes(data.productTypes);
     } catch (error) { console.error("Product types fetch failed", error); }
@@ -128,7 +131,7 @@ const Dashboard = () => {
     if (!fileData.data) return alert("Please select an image first!");
     setIsUploading(true);
     try {
-      const response = await fetch("http://127.0.0.1:5000/admin/upload-banner", {
+      const response = await fetch(`${apiUrl}/admin/upload-banner`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": "nexusBuild@123+!" },
         body: JSON.stringify({ filename: fileData.name, image_data: fileData.data }),
@@ -152,7 +155,7 @@ const Dashboard = () => {
   const handleDeleteBanner = async (id) => {
     if (!window.confirm("Are you sure you want to delete this banner?")) return;
     try {
-      const response = await fetch(`http://127.0.0.1:5000/admin/delete-banner/${id}`, {
+      const response = await fetch(`${apiUrl}/admin/delete-banner/${id}`, {
         method: "DELETE",
         headers: { "x-api-key": "nexusBuild@123+!" },
       });
@@ -184,8 +187,8 @@ const Dashboard = () => {
 
     setIsProductUploading(true);
     const url = isEditingProduct 
-      ? `http://127.0.0.1:5000/admin/update-product-card/${productForm.id}` 
-      : "http://127.0.0.1:5000/admin/add-product-card";
+      ? `${apiUrl}/admin/update-product-card/${productForm.id}` 
+      : `${apiUrl}admin/add-product-card`;
     
     const method = isEditingProduct ? "PUT" : "POST";
 
@@ -213,7 +216,7 @@ const Dashboard = () => {
   const handleDeleteProductCard = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product card permanently?")) return;
     try {
-      const response = await fetch(`http://127.0.0.1:5000/admin/delete-product-card/${id}`, {
+      const response = await fetch(`${apiUrl}/admin/delete-product-card/${id}`, {
         method: "DELETE",
         headers: { "x-api-key": "nexusBuild@123+!" },
       });

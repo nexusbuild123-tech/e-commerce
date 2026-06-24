@@ -1,5 +1,8 @@
 import { useState } from 'react';
 
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 const ProductTypes = ({
   productTypes,
   fetchProductTypes,
@@ -48,8 +51,8 @@ const ProductTypes = ({
 
     setIsProductTypeUploading(true);
     const url = isEditingProductType
-      ? `http://127.0.0.1:5000/admin/update-product-type/${productTypeForm.id}`
-      : "http://127.0.0.1:5000/admin/add-product-type";
+      ? `${apiUrl}/admin/update-product-type/${productTypeForm.id}`
+      : `${apiUrl}/admin/add-product-type`;
 
     const method = isEditingProductType ? "PUT" : "POST";
 
@@ -87,7 +90,7 @@ const ProductTypes = ({
   const handleDeleteProductType = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product type permanently?")) return;
     try {
-      const response = await fetch(`http://127.0.0.1:5000/admin/delete-product-type/${id}`, {
+      const response = await fetch(`${apiUrl}/admin/delete-product-type/${id}`, {
         method: "DELETE",
         headers: { "x-api-key": "nexusBuild@123+!" },
       });

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +19,7 @@ const Login = () => {
 
     try {
       // Apne Flask backend ka URL yahan dalein
-      const response = await fetch('http://127.0.0.1:5000/admin/login', {
+      const response = await fetch(`${apiUrl}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
