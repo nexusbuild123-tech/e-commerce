@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+const apiUrl = import.meta.env.VITE_API_URL;
+
+
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +47,7 @@ const Profile = () => {
         let triggerMobileOtp = isMobileChanged && !showOtpFields.mobile;
 
         if (triggerEmailOtp) {
-          await fetch("http://127.0.0.1:5000/send-otp", {
+          await fetch(`${apiUrl}/send-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": "nexusBuild@123+!" },
             body: JSON.stringify({ target: formData.email, type: "email" })
@@ -52,7 +55,7 @@ const Profile = () => {
         }
 
         if (triggerMobileOtp) {
-          await fetch("http://127.0.0.1:5000/send-otp", {
+          await fetch(`${apiUrl}/send-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": "nexusBuild@123+!" },
             body: JSON.stringify({ target: formData.mobile, type: "mobile" })
@@ -72,7 +75,7 @@ const Profile = () => {
 
     // STEP 2: Main Update Trigger Execution
     try {
-      const response = await fetch("http://127.0.0.1:5000/update-profile", {
+      const response = await fetch(`${apiUrl}/update-profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

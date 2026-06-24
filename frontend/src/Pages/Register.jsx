@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+const apiUrl = import.meta.env.VITE_API_URL;
+
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -31,12 +33,12 @@ const Register = () => {
     try {
       // Dono Email aur Mobile OTP parallel request se trigger honge
       const [emailRes, mobileRes] = await Promise.all([
-        fetch("http://127.0.0.1:5000/send-otp", {
+        fetch(`${apiUrl}/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": "nexusBuild@123+!" },
           body: JSON.stringify({ target: formData.email, type: "email" })
         }),
-        fetch("http://127.0.0.1:5000/send-otp", {
+        fetch(`${apiUrl}/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": "nexusBuild@123+!" },
           body: JSON.stringify({ target: formData.mobile, type: "mobile" })
@@ -67,7 +69,7 @@ const Register = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/register", {
+      const response = await fetch(`${apiUrl}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 const Home = () => {
   const categoryScrollRef = useRef(null);
   const scrollLeft = () => categoryScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
@@ -14,7 +17,7 @@ const Home = () => {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:5000/banners?t=${Date.now()}`, {
+        const response = await fetch(`${apiUrl}/banners?t=${Date.now()}`, {
           cache: "no-store"
         });
         const data = await response.json();
@@ -51,7 +54,7 @@ const Home = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:5000/categories?t=${Date.now()}`, {
+        const response = await fetch(`${apiUrl}/categories?t=${Date.now()}`, {
           cache: "no-store"
         });
         const data = await response.json();
@@ -76,7 +79,7 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:5000/product-cards?t=${Date.now()}`, {
+        const response = await fetch(`${apiUrl}/product-cards?t=${Date.now()}`, {
           cache: "no-store"
         });
         const data = await response.json();
