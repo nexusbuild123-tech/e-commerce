@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2/promise'); // Using promise wrapper for async/await
+const mysql = require('mysql2/promise');
 const { MY_OWN_API } = require('./api');
 
 const app = express();
@@ -10,7 +10,9 @@ app.use(cors({
     origin: "*",
     allowedHeaders: ["Content-Type", "x-api-key"]
 }));
-app.use(express.json()); // Parses incoming JSON requests
+
+// ***** INCREASE LIMIT TO 100MB *****
+app.use(express.json({ limit: '100mb' }));
 
 // Database configuration
 const dbConfig = {
@@ -21,10 +23,7 @@ const dbConfig = {
     port: 3306
 };
 
-// Create a connection pool (Better performance than opening/closing per request)
 const pool = mysql.createPool(dbConfig);
-
-// GLOBAL IN-MEMORY STORE FOR OTP TOKENS
 const otpStore = {};
 
 // Helper Middleware: API Key Validator
@@ -43,7 +42,7 @@ const authenticateApiKey = (req, res, next) => {
 app.get("/api_init", async (req, res) => {
     try {
         const connection = await pool.getConnection();
-        connection.release(); // release back to pool
+        connection.release();
         return res.json({ status: "success", message: "API and Database are working perfectly!" });
     } catch (err) {
         return res.json({ status: "error", message: `Database connection failed: ${err.message}` });
@@ -60,11 +59,9 @@ app.post("/send-otp", authenticateApiKey, (req, res) => {
         return res.status(400).json({ status: "error", message: "Target destination address is required!" });
     }
 
-    // 6-Digit random secure numeric setup
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[target.toString()] = generatedOtp;
 
-    // LOGGING EXECUTION
     console.log("\n" + "=".repeat(50));
     console.log(`[SECURITY CONTROL]: OTP sent to target destination: ${target}`);
     console.log(`[ACTIVE TOKEN VALUE]: ${generatedOtp}`);
@@ -80,7 +77,6 @@ app.post("/register", authenticateApiKey, async (req, res) => {
         return res.status(400).json({ status: "error", message: "All fields are required!" });
     }
 
-    // OTP Validation processing block
     if (!email_otp || otpStore[email.toString()] !== email_otp.toString()) {
         return res.status(400).json({ status: "error", message: "Invalid or missing Email OTP token!" });
     }
@@ -89,7 +85,6 @@ app.post("/register", authenticateApiKey, async (req, res) => {
         return res.status(400).json({ status: "error", message: "Invalid or missing Mobile OTP token!" });
     }
 
-    // Clear token verification cache post processing
     delete otpStore[email.toString()];
     delete otpStore[mobile.toString()];
 
@@ -97,17 +92,15 @@ app.post("/register", authenticateApiKey, async (req, res) => {
         const sql = "INSERT INTO users (name, email, password, mobile) VALUES (?, ?, ?, ?)";
         const values = [name, email, password, mobile];
         await pool.execute(sql, values);
-        
         return res.status(201).json({ status: "success", message: "User registered successfully!" });
     } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') { // Node equivalent of MySQL 1062
+        if (err.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ status: "error", message: "Email already registered!" });
         }
         return res.status(500).json({ status: "error", message: err.message });
     }
 });
 
-// Handled GET request to mimic Flask's message functionality
 app.get("/register", (req, res) => {
     return res.json({ message: "Send a POST request with headers and data to register." });
 });
@@ -145,7 +138,6 @@ app.put("/update-profile", authenticateApiKey, async (req, res) => {
     }
 
     try {
-        // STEP 1: Fetch current record to verify updates
         const [currentRecords] = await pool.execute("SELECT email, mobile FROM users WHERE id = ?", [userId]);
         
         if (currentRecords.length === 0) {
@@ -154,7 +146,6 @@ app.put("/update-profile", authenticateApiKey, async (req, res) => {
         
         const currentRecord = currentRecords[0];
 
-        // STEP 2: Condition matching for field differences
         if (currentRecord.email !== email) {
             if (!email_otp || otpStore[email.toString()] !== email_otp.toString()) {
                 return res.status(400).json({ status: "error", message: "Invalid verification tracking token for new email Address!" });
@@ -167,11 +158,9 @@ app.put("/update-profile", authenticateApiKey, async (req, res) => {
             }
         }
 
-        // Purge used OTP entries from dictionary
         delete otpStore[email.toString()];
         delete otpStore[mobile.toString()];
 
-        // STEP 3: Database execution block
         const sql = "UPDATE users SET name=?, email=?, mobile=?, address=?, password=? WHERE id=?";
         await pool.execute(sql, [name, email, mobile, address, password, userId]);
 
@@ -274,12 +263,10 @@ app.delete("/admin/delete-banner/:banner_id", authenticateApiKey, async (req, re
     }
 });
 
-
 // ==========================================
-// PRODUCT CARD MANAGEMENT ROUTES (CRUD)
+// PRODUCT CARD MANAGEMENT ROUTES
 // ==========================================
 
-// 1. Fetch All Products (Frontend display ke liye)
 app.get("/product-cards", async (req, res) => {
     try {
         const [products] = await pool.execute("SELECT * FROM product_cards ORDER BY id DESC");
@@ -289,7 +276,6 @@ app.get("/product-cards", async (req, res) => {
     }
 });
 
-// 2. Add New Product Card
 app.post("/admin/add-product-card", authenticateApiKey, async (req, res) => {
     const { name, category, description, image, discount, rating } = req.body;
 
@@ -306,7 +292,6 @@ app.post("/admin/add-product-card", authenticateApiKey, async (req, res) => {
     }
 });
 
-// 3. Update Existing Product Card
 app.put("/admin/update-product-card/:id", authenticateApiKey, async (req, res) => {
     const { id } = req.params;
     const { name, category, description, image, discount, rating } = req.body;
@@ -324,7 +309,6 @@ app.put("/admin/update-product-card/:id", authenticateApiKey, async (req, res) =
     }
 });
 
-// 4. Delete Product Card
 app.delete("/admin/delete-product-card/:id", authenticateApiKey, async (req, res) => {
     const { id } = req.params;
 
@@ -336,10 +320,10 @@ app.delete("/admin/delete-product-card/:id", authenticateApiKey, async (req, res
     }
 });
 
+// ==========================================
+// SHOP CATEGORY MANAGEMENT ROUTES
+// ==========================================
 
-// --- SHOP CATEGORY MANAGEMENT ROUTES ---
-
-// 1. Fetch All Categories
 app.get("/categories", async (req, res) => {
     try {
         const [categories] = await pool.execute("SELECT * FROM shop_categories ORDER BY id DESC");
@@ -349,7 +333,6 @@ app.get("/categories", async (req, res) => {
     }
 });
 
-// 2. Add New Category
 app.post("/admin/add-category", authenticateApiKey, async (req, res) => {
     const { name, slug, image } = req.body;
     if (!name || !slug || !image) return res.status(400).json({ status: "error", message: "All fields required!" });
@@ -362,7 +345,6 @@ app.post("/admin/add-category", authenticateApiKey, async (req, res) => {
     }
 });
 
-// 3. Update Category
 app.put("/admin/update-category/:id", authenticateApiKey, async (req, res) => {
     const { id } = req.params;
     const { name, slug, image } = req.body;
@@ -374,7 +356,6 @@ app.put("/admin/update-category/:id", authenticateApiKey, async (req, res) => {
     }
 });
 
-// 4. Delete Category
 app.delete("/admin/delete-category/:id", authenticateApiKey, async (req, res) => {
     try {
         await pool.execute("DELETE FROM shop_categories WHERE id = ?", [req.params.id]);
@@ -384,35 +365,60 @@ app.delete("/admin/delete-category/:id", authenticateApiKey, async (req, res) =>
     }
 });
 
-
-
 // ==========================================
-// PRODUCT TYPES MANAGEMENT ROUTES (CRUD)
+// PRODUCT TYPES MANAGEMENT ROUTES
+// ==========================================
+// ==========================================
+// PRODUCT TYPES MANAGEMENT ROUTES (UPDATED)
 // ==========================================
 
-// 1. Fetch All Product Types
 app.get("/product-types", async (req, res) => {
     try {
-        const [productTypes] = await pool.execute("SELECT * FROM product_types ORDER BY id DESC");
+        const sql = `
+            SELECT pt.*, 
+                   sc.name AS category_name, 
+                   pc.name AS product_card_name
+            FROM product_types pt
+            LEFT JOIN shop_categories sc ON pt.category_id = sc.id
+            LEFT JOIN product_cards pc ON pt.product_card_id = pc.id
+            ORDER BY pt.id DESC
+        `;
+        const [productTypes] = await pool.execute(sql);
+        console.log(`✅ Fetched ${productTypes.length} product types`);
         return res.status(200).json({ status: "success", productTypes });
     } catch (err) {
+        console.error("❌ Error fetching product types:", err);
         return res.status(500).json({ status: "error", message: err.message });
     }
 });
 
-// 2. Add New Product Type
 app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
-    const { name, slug, description } = req.body;
+    const { name, slug, description, category_id, product_card_id, image, price, discount, rating } = req.body;
+
+    console.log("📥 Received POST data:", { name, slug, price, discount, rating });
 
     if (!name || !slug) {
-        return res.status(400).json({ status: "error", message: "Name and Slug fields are required!" });
+        return res.status(400).json({ status: "error", message: "Name and Slug are required!" });
     }
 
     try {
-        const sql = "INSERT INTO product_types (name, slug, description) VALUES (?, ?, ?)";
-        await pool.execute(sql, [name, slug, description || '']);
-        return res.status(201).json({ status: "success", message: "Product Type added successfully!" });
+        const sql = `
+            INSERT INTO product_types 
+            (name, slug, description, category_id, product_card_id, image, price, discount, rating)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const [result] = await pool.execute(sql, [
+            name, slug, description || '',
+            category_id || null, product_card_id || null,
+            image || null,
+            price !== undefined ? price : null,
+            discount !== undefined ? discount : null,
+            rating !== undefined ? rating : null
+        ]);
+        console.log("✅ Insert result:", result);
+        return res.status(201).json({ status: "success", message: "Product Type added successfully!", id: result.insertId });
     } catch (err) {
+        console.error("❌ Insert error:", err);
         if (err.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ status: "error", message: "This slug or type already exists!" });
         }
@@ -420,35 +426,51 @@ app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
     }
 });
 
-// 3. Update Existing Product Type
 app.put("/admin/update-product-type/:id", authenticateApiKey, async (req, res) => {
     const { id } = req.params;
-    const { name, slug, description } = req.body;
+    const { name, slug, description, category_id, product_card_id, image, price, discount, rating } = req.body;
+
+    console.log(`📥 Received PUT data for ID ${id}:`, { name, slug, price, discount, rating });
 
     if (!name || !slug) {
-        return res.status(400).json({ status: "error", message: "Name and Slug fields are required!" });
+        return res.status(400).json({ status: "error", message: "Name and Slug are required!" });
     }
 
     try {
-        const sql = "UPDATE product_types SET name=?, slug=?, description=? WHERE id=?";
-        await pool.execute(sql, [name, slug, description || '', id]);
+        const sql = `
+            UPDATE product_types 
+            SET name=?, slug=?, description=?, category_id=?, product_card_id=?, image=?, 
+                price=?, discount=?, rating=?
+            WHERE id=?
+        `;
+        const [result] = await pool.execute(sql, [
+            name, slug, description || '',
+            category_id || null, product_card_id || null,
+            image || null,
+            price !== undefined ? price : null,
+            discount !== undefined ? discount : null,
+            rating !== undefined ? rating : null,
+            id
+        ]);
+        console.log("✅ Update result:", result);
         return res.status(200).json({ status: "success", message: "Product Type updated successfully!" });
     } catch (err) {
+        console.error("❌ Update error:", err);
         return res.status(500).json({ status: "error", message: err.message });
     }
 });
 
-// 4. Delete Product Type
 app.delete("/admin/delete-product-type/:id", authenticateApiKey, async (req, res) => {
     const { id } = req.params;
-
     try {
         await pool.execute("DELETE FROM product_types WHERE id = ?", [id]);
         return res.status(200).json({ status: "success", message: "Product Type permanently deleted!" });
     } catch (err) {
+        console.error("❌ Delete error:", err);
         return res.status(500).json({ status: "error", message: err.message });
     }
 });
+
 
 // START SERVER
 const PORT = process.env.PORT || 5000;

@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeBanner from "./HomeBanner";
 import ProductCard from "./ProductCard";
-import ManagementPlaceholder from "./ManagementPlaceholder";
+// import ManagementPlaceholder from "./ManagementPlaceholder";
 import ShopByCategory from "./ShopByCategory"; 
 import ProductTypes from "./ProductTypes"; 
-
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -34,9 +33,18 @@ const Dashboard = () => {
   const [isCategoryUploading, setIsCategoryUploading] = useState(false);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
 
-  // --- PRODUCT TYPES STATES ---
+  // --- PRODUCT TYPES STATES (UPDATED with image + new fields) ---
   const [productTypes, setProductTypes] = useState([]);
-  const [productTypeForm, setProductTypeForm] = useState({ id: null, name: "", slug: "", description: "" });
+  const [productTypeForm, setProductTypeForm] = useState({ 
+    id: null, 
+    name: "", 
+    slug: "", 
+    description: "",
+    image: "",
+    price: "",    // NEW
+    discount: "", // NEW
+    rating: ""    // NEW
+  });
   const [isProductTypeUploading, setIsProductTypeUploading] = useState(false);
   const [isEditingProductType, setIsEditingProductType] = useState(false);
 
@@ -166,7 +174,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // PRODUCT CARD OPERATION HANDLERS (RESTORED)
+  // PRODUCT CARD OPERATION HANDLERS
   // ==========================================
   const handleProductImageChange = (e) => {
     const file = e.target.files[0];
@@ -188,7 +196,7 @@ const Dashboard = () => {
     setIsProductUploading(true);
     const url = isEditingProduct 
       ? `${apiUrl}/admin/update-product-card/${productForm.id}` 
-      : `${apiUrl}admin/add-product-card`;
+      : `${apiUrl}/admin/add-product-card`;
     
     const method = isEditingProduct ? "PUT" : "POST";
 
@@ -260,9 +268,19 @@ const Dashboard = () => {
     if (fileInput) fileInput.value = "";
   };
 
+  // UPDATED resetProductTypeForm – now clears image + new fields
   const resetProductTypeForm = () => {
     setIsEditingProductType(false);
-    setProductTypeForm({ id: null, name: "", slug: "", description: "" });
+    setProductTypeForm({ 
+      id: null, 
+      name: "", 
+      slug: "", 
+      description: "",
+      image: "",
+      price: "",
+      discount: "",
+      rating: ""
+    });
   };
 
   // Sidebar Menu Map
@@ -360,7 +378,7 @@ const Dashboard = () => {
         );
 
       default:
-        return <ManagementPlaceholder activeTab={activeTab} />;
+        // return <ManagementPlaceholder activeTab={activeTab} />;
     }
   };
 
