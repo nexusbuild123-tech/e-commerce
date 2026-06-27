@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeBanner from "./HomeBanner";
 import ProductCard from "./ProductCard";
-// import ManagementPlaceholder from "./ManagementPlaceholder";
 import ShopByCategory from "./ShopByCategory"; 
-import ProductTypes from "./ProductTypes"; 
+import ProductTypes from "./ProductTypes";
+import ProductDetails from "./ProductDetails";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -33,17 +33,18 @@ const Dashboard = () => {
   const [isCategoryUploading, setIsCategoryUploading] = useState(false);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
 
-  // --- PRODUCT TYPES STATES (UPDATED with image + new fields) ---
+  // --- PRODUCT TYPES STATES (with specifications) ---
   const [productTypes, setProductTypes] = useState([]);
   const [productTypeForm, setProductTypeForm] = useState({ 
     id: null, 
     name: "", 
     slug: "", 
     description: "",
+    specifications: "", // NEW
     image: "",
-    price: "",    // NEW
-    discount: "", // NEW
-    rating: ""    // NEW
+    price: "",
+    discount: "",
+    rating: ""
   });
   const [isProductTypeUploading, setIsProductTypeUploading] = useState(false);
   const [isEditingProductType, setIsEditingProductType] = useState(false);
@@ -268,7 +269,7 @@ const Dashboard = () => {
     if (fileInput) fileInput.value = "";
   };
 
-  // UPDATED resetProductTypeForm – now clears image + new fields
+  // UPDATED resetProductTypeForm – clears all fields including specifications
   const resetProductTypeForm = () => {
     setIsEditingProductType(false);
     setProductTypeForm({ 
@@ -276,6 +277,7 @@ const Dashboard = () => {
       name: "", 
       slug: "", 
       description: "",
+      specifications: "",
       image: "",
       price: "",
       discount: "",
@@ -377,8 +379,11 @@ const Dashboard = () => {
           />
         );
 
+      case "Product Details":
+        return <ProductDetails />;
+
       default:
-        // return <ManagementPlaceholder activeTab={activeTab} />;
+        return null;
     }
   };
 

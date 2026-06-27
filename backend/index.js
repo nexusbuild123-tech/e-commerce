@@ -11,7 +11,7 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "x-api-key"]
 }));
 
-// ***** INCREASE LIMIT TO 100MB *****
+// ***** INCREASE JSON PAYLOAD LIMIT TO 100MB *****
 app.use(express.json({ limit: '100mb' }));
 
 // Database configuration
@@ -20,10 +20,27 @@ const dbConfig = {
     user: "root",
     password: "",
     database: "CRM_TRADERS",
-    port: 3306
+    port: 3306,
+    // Increase connection timeout and packet size
+    connectTimeout: 60000
 };
 
+// Create a connection pool
 const pool = mysql.createPool(dbConfig);
+
+// -------- FIX: Increase max_allowed_packet for each connection ----------
+pool.on('connection', function (connection) {
+    // Set session variable to 1GB (1073741824 bytes)
+    connection.query('SET SESSION max_allowed_packet = 1073741824', function (err) {
+        if (err) {
+            console.error('⚠️ Failed to set max_allowed_packet:', err.message);
+        } else {
+            console.log('✅ Session max_allowed_packet set to 1GB');
+        }
+    });
+});
+
+// GLOBAL IN-MEMORY STORE FOR OTP TOKENS
 const otpStore = {};
 
 // Helper Middleware: API Key Validator
@@ -368,9 +385,6 @@ app.delete("/admin/delete-category/:id", authenticateApiKey, async (req, res) =>
 // ==========================================
 // PRODUCT TYPES MANAGEMENT ROUTES
 // ==========================================
-// ==========================================
-// PRODUCT TYPES MANAGEMENT ROUTES (UPDATED)
-// ==========================================
 
 app.get("/product-types", async (req, res) => {
     try {
@@ -393,9 +407,7 @@ app.get("/product-types", async (req, res) => {
 });
 
 app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
-    const { name, slug, description, category_id, product_card_id, image, price, discount, rating } = req.body;
-
-    console.log("📥 Received POST data:", { name, slug, price, discount, rating });
+    const { name, slug, description, category_id, product_card_id, image, price, discount, rating, specifications } = req.body;
 
     if (!name || !slug) {
         return res.status(400).json({ status: "error", message: "Name and Slug are required!" });
@@ -404,8 +416,8 @@ app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
     try {
         const sql = `
             INSERT INTO product_types 
-            (name, slug, description, category_id, product_card_id, image, price, discount, rating)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, slug, description, category_id, product_card_id, image, price, discount, rating, specifications)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const [result] = await pool.execute(sql, [
             name, slug, description || '',
@@ -413,7 +425,8 @@ app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
             image || null,
             price !== undefined ? price : null,
             discount !== undefined ? discount : null,
-            rating !== undefined ? rating : null
+            rating !== undefined ? rating : null,
+            specifications || null
         ]);
         console.log("✅ Insert result:", result);
         return res.status(201).json({ status: "success", message: "Product Type added successfully!", id: result.insertId });
@@ -428,9 +441,7 @@ app.post("/admin/add-product-type", authenticateApiKey, async (req, res) => {
 
 app.put("/admin/update-product-type/:id", authenticateApiKey, async (req, res) => {
     const { id } = req.params;
-    const { name, slug, description, category_id, product_card_id, image, price, discount, rating } = req.body;
-
-    console.log(`📥 Received PUT data for ID ${id}:`, { name, slug, price, discount, rating });
+    const { name, slug, description, category_id, product_card_id, image, price, discount, rating, specifications } = req.body;
 
     if (!name || !slug) {
         return res.status(400).json({ status: "error", message: "Name and Slug are required!" });
@@ -440,7 +451,7 @@ app.put("/admin/update-product-type/:id", authenticateApiKey, async (req, res) =
         const sql = `
             UPDATE product_types 
             SET name=?, slug=?, description=?, category_id=?, product_card_id=?, image=?, 
-                price=?, discount=?, rating=?
+                price=?, discount=?, rating=?, specifications=?
             WHERE id=?
         `;
         const [result] = await pool.execute(sql, [
@@ -450,6 +461,7 @@ app.put("/admin/update-product-type/:id", authenticateApiKey, async (req, res) =
             price !== undefined ? price : null,
             discount !== undefined ? discount : null,
             rating !== undefined ? rating : null,
+            specifications || null,
             id
         ]);
         console.log("✅ Update result:", result);
@@ -471,6 +483,135 @@ app.delete("/admin/delete-product-type/:id", authenticateApiKey, async (req, res
     }
 });
 
+// ==========================================
+// PRODUCT COLOR VARIANTS ROUTES (with is_available)
+// ==========================================
+
+// Public: Get variants for a product type
+app.get("/product-color-variants/:productTypeId", async (req, res) => {
+    const { productTypeId } = req.params;
+    try {
+        const [variants] = await pool.execute(
+            "SELECT * FROM product_color_variants WHERE product_type_id = ? ORDER BY id ASC",
+            [productTypeId]
+        );
+        return res.status(200).json({ status: "success", variants });
+    } catch (err) {
+        console.error("❌ Error fetching variants:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Get all variants (with product type info)
+app.get("/admin/product-color-variants", authenticateApiKey, async (req, res) => {
+    try {
+        const [variants] = await pool.execute(`
+            SELECT v.*, pt.name AS product_type_name 
+            FROM product_color_variants v
+            JOIN product_types pt ON v.product_type_id = pt.id
+            ORDER BY v.product_type_id, v.id
+        `);
+        return res.status(200).json({ status: "success", variants });
+    } catch (err) {
+        console.error("❌ Error fetching all variants:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Add variant (with is_available)
+app.post("/admin/product-color-variants", authenticateApiKey, async (req, res) => {
+    const { product_type_id, color_name, color_hex, image, is_available } = req.body;
+    if (!product_type_id || !color_name || !color_hex) {
+        return res.status(400).json({ status: "error", message: "Product type, color name and hex are required!" });
+    }
+    try {
+        const [result] = await pool.execute(
+            "INSERT INTO product_color_variants (product_type_id, color_name, color_hex, image, is_available) VALUES (?, ?, ?, ?, ?)",
+            [product_type_id, color_name, color_hex, image || null, is_available !== undefined ? is_available : true]
+        );
+        return res.status(201).json({ status: "success", message: "Variant added!", id: result.insertId });
+    } catch (err) {
+        console.error("❌ Add variant error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Update variant (with is_available)
+app.put("/admin/product-color-variants/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { color_name, color_hex, image, is_available } = req.body;
+    try {
+        await pool.execute(
+            "UPDATE product_color_variants SET color_name=?, color_hex=?, image=?, is_available=? WHERE id=?",
+            [color_name, color_hex, image || null, is_available !== undefined ? is_available : true, id]
+        );
+        return res.status(200).json({ status: "success", message: "Variant updated!" });
+    } catch (err) {
+        console.error("❌ Update variant error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Delete variant
+app.delete("/admin/product-color-variants/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.execute("DELETE FROM product_color_variants WHERE id = ?", [id]);
+        return res.status(200).json({ status: "success", message: "Variant deleted!" });
+    } catch (err) {
+        console.error("❌ Delete variant error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// ==========================================
+// PRODUCT TYPE GALLERY ROUTES
+// ==========================================
+
+// Public: Get gallery images for a product type
+app.get("/product-type-gallery/:productTypeId", async (req, res) => {
+    const { productTypeId } = req.params;
+    try {
+        const [images] = await pool.execute(
+            "SELECT * FROM product_type_gallery WHERE product_type_id = ? ORDER BY id ASC",
+            [productTypeId]
+        );
+        return res.status(200).json({ status: "success", images });
+    } catch (err) {
+        console.error("❌ Error fetching gallery:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Add gallery image
+app.post("/admin/product-type-gallery", authenticateApiKey, async (req, res) => {
+    const { product_type_id, image } = req.body;
+    if (!product_type_id || !image) {
+        return res.status(400).json({ status: "error", message: "Product type ID and image are required!" });
+    }
+    try {
+        const [result] = await pool.execute(
+            "INSERT INTO product_type_gallery (product_type_id, image) VALUES (?, ?)",
+            [product_type_id, image]
+        );
+        return res.status(201).json({ status: "success", message: "Gallery image added!", id: result.insertId });
+    } catch (err) {
+        console.error("❌ Add gallery image error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Delete gallery image
+app.delete("/admin/product-type-gallery/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.execute("DELETE FROM product_type_gallery WHERE id = ?", [id]);
+        return res.status(200).json({ status: "success", message: "Gallery image deleted!" });
+    } catch (err) {
+        console.error("❌ Delete gallery image error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
 
 // START SERVER
 const PORT = process.env.PORT || 5000;
