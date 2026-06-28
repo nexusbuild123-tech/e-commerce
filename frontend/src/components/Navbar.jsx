@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../assets/Logo1.png";
+import { useCart } from "../context/CartContext";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -8,8 +9,9 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false); // Dynamic Categories Open State
-  const [categories, setCategories] = useState([]); // Categories storage state
+  const [categories, setCategories] = useState([]);
+
+  const { totalItems } = useCart(); // 👈 get cart count
 
   const [location, setLocation] = useState(() => {
     const storedUser = localStorage.getItem("user");
@@ -29,7 +31,7 @@ const Navbar = () => {
 
   const navigate = useNavigate();
 
-  // --- FETCH SHOP CATEGORIES FOR DROPDOWN (Bypassing ESLint Cascade) ---
+  // --- FETCH CATEGORIES ---
   useEffect(() => {
     let ignore = false;
     const loadCategories = async () => {
@@ -49,7 +51,7 @@ const Navbar = () => {
     };
   }, []);
 
-  // Current Location Fetch
+  // --- LOCATION ---
   useEffect(() => {
     if (user?.location) return;
 
@@ -61,9 +63,8 @@ const Navbar = () => {
 
           try {
             const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
             );
-
             const data = await response.json();
 
             const city =
@@ -82,25 +83,21 @@ const Navbar = () => {
         },
         () => {
           setLocation("Location unavailable");
-        },
+        }
       );
     }
   }, [user?.location]);
 
-  // Scroll + Auth Change
+  // --- SCROLL & AUTH ---
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
-
     window.addEventListener("scroll", handleScroll);
 
     const checkUser = () => {
       const storedUser = localStorage.getItem("user");
-
       if (storedUser) {
         const userData = JSON.parse(storedUser);
-
         setUser(userData);
-
         if (userData.location) {
           setLocation(userData.location);
         }
@@ -118,9 +115,9 @@ const Navbar = () => {
     };
   }, []);
 
+  // --- LOCATION UPDATE ---
   const handleLocationChange = async () => {
     const newLocation = prompt("Enter your area or pincode:", location);
-
     if (!newLocation) return;
 
     setLocation(newLocation);
@@ -140,13 +137,8 @@ const Navbar = () => {
         });
 
         const data = await response.json();
-
         if (data.status === "success") {
-          const updatedUser = {
-            ...user,
-            location: newLocation,
-          };
-
+          const updatedUser = { ...user, location: newLocation };
           localStorage.setItem("user", JSON.stringify(updatedUser));
           setUser(updatedUser);
         }
@@ -174,11 +166,12 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
+          {/* LOGO */}
           <Link to="/" className="flex items-center space-x-2 group">
             <img src={Logo} alt="Logo" className="h-[92px]" />
           </Link>
 
-          {/* Location Picker Section */}
+          {/* LOCATION PICKER */}
           <button
             onClick={handleLocationChange}
             className="hidden lg:flex items-center space-x-2 text-slate-700 hover:text-blue-600 transition-colors ml-6"
@@ -193,7 +186,6 @@ const Navbar = () => {
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
               <circle cx="12" cy="10" r="3"></circle>
             </svg>
-
             <div className="text-xs font-bold text-left">
               <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                 Deliver to
@@ -202,62 +194,18 @@ const Navbar = () => {
             </div>
           </button>
 
-          {/* Nav Navigation Menu Links */}
+          {/* DESKTOP NAV LINKS */}
           <div className="hidden md:flex items-center space-x-8 text-sm font-semibold tracking-wide text-slate-700 ml-auto mr-8">
             <Link to="/" className="hover:text-blue-600 transition-colors">
               Home
             </Link>
 
-            {/* CHANGED: ALL PRODUCTS DYNAMIC DROPDOWN TOGGLER */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setIsCategoriesOpen(!isCategoriesOpen);
-                  setIsProfileOpen(false); // Close profile if open
-                }}
-                className="flex items-center space-x-1 hover:text-blue-600 transition-colors font-semibold focus:outline-none"
-              >
-                <span>All Products</span>
-                <svg
-                  className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? "rotate-180" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </button>
-
-              {/* DYNAMIC CATEGORIES LIST DROPDOWN PANEL */}
-              {isCategoriesOpen && (
-                <div className="absolute left-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 py-2 animate-fade-in">
-                  {categories.length === 0 ? (
-                    <p className="text-xs text-gray-400 px-4 py-3">
-                      No category structures found.
-                    </p>
-                  ) : (
-                    categories.map((cat) => (
-                      <Link
-                        key={cat.id}
-                        to={`/category/${cat.slug}`}
-                        onClick={() => setIsCategoriesOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center p-1 border">
-                          <img
-                            src={cat.image}
-                            alt={cat.name}
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                        <span className="truncate">{cat.name}</span>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+            <Link
+              to="/products"
+              className="hover:text-blue-600 transition-colors"
+            >
+              All Products
+            </Link>
 
             <Link
               to="/track-order"
@@ -267,26 +215,44 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Profile Actions / Auth Blocks */}
+          {/* DESKTOP RIGHT: PROFILE + CART */}
           <div className="hidden md:flex items-center space-x-4 text-slate-700">
+            {/* CART BUTTON WITH BADGE */}
+            <Link
+              to="/cart"
+              className="relative p-2 hover:bg-slate-100 rounded-full transition-colors"
+              aria-label="Cart"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.4 6h12.8M7 13h10l-2.4 6H7m6-9v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+
+            {/* PROFILE / AUTH */}
             <div className="flex items-center border-l border-gray-300 pl-4 ml-2 relative">
               {user ? (
                 <div className="relative">
                   <button
-                    onClick={() => {
-                      setIsProfileOpen(!isProfileOpen);
-                      setIsCategoriesOpen(false); // Close categories dropdown if open
-                    }}
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center space-x-2 group hover:bg-slate-100 p-1.5 rounded-xl transition-colors"
                   >
                     <div className="w-8 h-8 bg-blue-100 text-blue-700 font-bold rounded-full flex items-center justify-center uppercase shadow-sm">
                       {user.name ? user.name.charAt(0) : "U"}
                     </div>
-
                     <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
                       Hi, {user.name ? user.name.split(" ")[0] : "User"}
                     </span>
-
                     <svg
                       className="w-4 h-4 text-slate-400 group-hover:text-blue-600"
                       fill="none"
@@ -308,7 +274,6 @@ const Navbar = () => {
                           {user.email}
                         </p>
                       </div>
-
                       <Link
                         to="/profile"
                         onClick={() => setIsProfileOpen(false)}
@@ -316,7 +281,6 @@ const Navbar = () => {
                       >
                         Edit Profile
                       </Link>
-
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
@@ -334,7 +298,6 @@ const Navbar = () => {
                   >
                     Login
                   </Link>
-
                   <Link
                     to="/register"
                     className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all"
@@ -346,8 +309,25 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Hamburger Menu Icon Trigger */}
+          {/* MOBILE HAMBURGER + CART ICON */}
           <div className="md:hidden flex items-center space-x-4">
+            {/* Cart button (mobile) with badge */}
+            <Link to="/cart" className="relative p-1" aria-label="Cart">
+              <svg
+                className="w-6 h-6 text-slate-700"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.4 6h12.8M7 13h10l-2.4 6H7m6-9v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-slate-800 p-1"
@@ -378,7 +358,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* MOBILE RESPONSIVE DRAWER OVERLAY MENU */}
+      {/* MOBILE DRAWER */}
       {isMenuOpen && (
         <div className="md:hidden bg-white/90 backdrop-blur-xl border-t border-gray-100 mt-2 px-4 py-4 space-y-3 shadow-inner">
           <Link
@@ -389,29 +369,38 @@ const Navbar = () => {
             Home
           </Link>
 
-          {/* Mobile All Category Section List Accordion */}
-          <div className="border-y border-gray-100 py-2">
-            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
-              Product Categories
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  to={`/category/${cat.slug}`}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-blue-600 bg-slate-50 p-2 rounded-lg"
-                >
-                  <img
-                    src={cat.image}
-                    className="w-5 h-5 object-contain"
-                    alt=""
-                  />
-                  <span className="truncate">{cat.name}</span>
-                </Link>
-              ))}
+          <Link
+            to="/products"
+            onClick={() => setIsMenuOpen(false)}
+            className="block text-sm font-bold text-slate-700 hover:text-blue-600 py-1"
+          >
+            All Products
+          </Link>
+
+          {categories.length > 0 && (
+            <div className="border-y border-gray-100 py-2">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
+                Categories
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    to={`/category/${cat.slug}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-blue-600 bg-slate-50 p-2 rounded-lg"
+                  >
+                    <img
+                      src={cat.image}
+                      className="w-5 h-5 object-contain"
+                      alt=""
+                    />
+                    <span className="truncate">{cat.name}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <Link
             to="/track-order"
@@ -421,7 +410,23 @@ const Navbar = () => {
             Track Order
           </Link>
 
-          {/* Mobile Profile / Authentication Check */}
+          <Link
+            to="/cart"
+            onClick={() => setIsMenuOpen(false)}
+            className="flex items-center space-x-2 text-sm font-bold text-slate-700 hover:text-blue-600 py-1"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.4 6h12.8M7 13h10l-2.4 6H7m6-9v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+            <span>Cart {totalItems > 0 && `(${totalItems})`}</span>
+          </Link>
+
           {!user ? (
             <div className="flex gap-2 pt-2 border-t border-gray-100">
               <Link
