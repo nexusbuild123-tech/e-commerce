@@ -1,11 +1,214 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import Toast from '../components/Toast';
 
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const Checkout = () => {
-  return (
-    <div>
-      
-    </div>
-  )
-}
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { clearCart } = useCart(); // ✅ only clearCart, not cartItems
+    const state = location.state || {};
 
-export default Checkout
+    // ✅ Memoize items to prevent unnecessary re-renders
+    const items = useMemo(() => {
+        return state.cartItems || (state.product ? [state.product] : []);
+    }, [state.cartItems, state.product]);
+
+    const isFromCart = !!state.cartItems;
+
+    const [loading, setLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    const [formData, setFormData] = useState(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            return {
+                customer_name: user.name || '',
+                customer_email: user.email || '',
+                customer_phone: user.mobile || '',
+                delivery_address: ''
+            };
+        }
+        return {
+            customer_name: '',
+            customer_email: '',
+            customer_phone: '',
+            delivery_address: ''
+        };
+    });
+
+    // ✅ Dependency array now stable (items is memoized)
+    useEffect(() => {
+        if (items.length === 0) {
+            navigate('/');
+        }
+    }, [items, navigate]);
+
+    if (items.length === 0) {
+        return null;
+    }
+
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.customer_name || !formData.customer_email || !formData.customer_phone || !formData.delivery_address) {
+            setToast({ message: 'Please fill all fields.', type: 'error' });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // Place orders for each item
+            for (const item of items) {
+                const payload = {
+                    product_type_id: item.id,
+                    variant_id: item.variant?.id || null,
+                    product_name: item.name,
+                    variant_name: item.variant?.color || null,
+                    price: item.price,
+                    quantity: item.quantity || 1,
+                    total: item.price * (item.quantity || 1),
+                    customer_name: formData.customer_name,
+                    customer_email: formData.customer_email,
+                    customer_phone: formData.customer_phone,
+                    delivery_address: formData.delivery_address
+                };
+
+                const res = await fetch(`${apiUrl}/place-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': 'nexusBuild@123+!'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.message || 'Order failed');
+                }
+            }
+
+            // If cart order, clear the cart
+            if (isFromCart) {
+                clearCart();
+            }
+
+            setToast({ message: '🎉 All orders placed successfully! We will contact you shortly.', type: 'success' });
+            setTimeout(() => {
+                navigate('/');
+            }, 3000);
+        } catch (error) {
+            console.error('Order error:', error);
+            setToast({ message: error.message || 'Something went wrong. Please try again.', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            <div className="max-w-4xl mx-auto px-4 py-8">
+                <h1 className="text-3xl font-extrabold text-gray-800 mb-6">
+                    {isFromCart ? 'Checkout – Multiple Items' : 'Checkout – Cash on Delivery'}
+                </h1>
+
+                <div className="grid md:grid-cols-2 gap-8">
+                    {/* Order Summary */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <h2 className="text-xl font-bold text-gray-700 mb-4">Order Summary</h2>
+                        {items.map((item, idx) => (
+                            <div key={idx} className="flex items-start gap-4 border-b pb-3 mb-3">
+                                <img
+                                    src={item.image || 'https://via.placeholder.com/80'}
+                                    alt={item.name}
+                                    className="w-16 h-16 object-cover rounded-xl"
+                                />
+                                <div>
+                                    <h3 className="font-bold text-gray-800">{item.name}</h3>
+                                    {item.variant && <p className="text-sm text-gray-500">Color: {item.variant.color}</p>}
+                                    <p className="text-sm font-semibold text-blue-600">₹{item.price}</p>
+                                    <p className="text-xs text-gray-400">Qty: {item.quantity || 1}</p>
+                                </div>
+                            </div>
+                        ))}
+                        <div className="flex justify-between mt-4 text-lg font-bold">
+                            <span>Total:</span>
+                            <span>₹{totalAmount.toFixed(2)}</span>
+                        </div>
+                        <p className="text-xs text-green-600 mt-2">✅ Cash on Delivery available</p>
+                    </div>
+
+                    {/* Delivery Form */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <h2 className="text-xl font-bold text-gray-700 mb-4">Delivery Details</h2>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-600">Full Name *</label>
+                                <input
+                                    type="text"
+                                    name="customer_name"
+                                    value={formData.customer_name}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-600">Email *</label>
+                                <input
+                                    type="email"
+                                    name="customer_email"
+                                    value={formData.customer_email}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-600">Phone *</label>
+                                <input
+                                    type="tel"
+                                    name="customer_phone"
+                                    value={formData.customer_phone}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-600">Delivery Address *</label>
+                                <textarea
+                                    name="delivery_address"
+                                    rows="3"
+                                    value={formData.delivery_address}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50"
+                            >
+                                {loading ? 'Placing Orders...' : 'Confirm Order (Cash on Delivery)'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+export default Checkout;

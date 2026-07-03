@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Toast from '../components/Toast';
 
@@ -8,6 +8,7 @@ const PLACEHOLDER_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 
 const ProductDetail = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { addToCart } = useCart();
     const [loading, setLoading] = useState(true);
     const [productType, setProductType] = useState(null);
@@ -97,9 +98,31 @@ const ProductDetail = () => {
             return;
         }
         addToCart(productType, selectedColor);
-        setToast({ 
+        setToast({
             message: `${productType?.name} (${selectedColor.color_name}) added to cart!`,
             type: 'success'
+        });
+    };
+
+    // ---- BUY NOW – redirect to checkout ----
+    const handleBuyNow = () => {
+        if (!isSelectedColorAvailable) {
+            setToast({ message: 'This color is out of stock!', type: 'error' });
+            return;
+        }
+
+        navigate('/checkout', {
+            state: {
+                product: {
+                    id: productType.id,
+                    name: productType.name,
+                    price: productType.price,
+                    discount: productType.discount,
+                    image: productType.image,
+                    variant: selectedColor,
+                    quantity: 1
+                }
+            }
         });
     };
 
@@ -245,7 +268,7 @@ const ProductDetail = () => {
                                     {isSelectedColorAvailable ? 'Add to Cart' : 'Out of Stock'}
                                 </button>
                                 <button
-                                    onClick={() => alert('Buy Now')}
+                                    onClick={handleBuyNow}
                                     disabled={!isSelectedColorAvailable}
                                     className={`flex-1 text-lg font-bold py-4 px-8 rounded-xl transition-all transform hover:-translate-y-1 ${
                                         isSelectedColorAvailable

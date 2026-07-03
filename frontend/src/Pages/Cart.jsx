@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart, totalItems, totalPrice } = useCart();
+    const navigate = useNavigate();
 
     if (cartItems.length === 0) {
         return (
@@ -20,13 +21,19 @@ const Cart = () => {
         );
     }
 
+    const handleCheckout = () => {
+        navigate('/checkout', {
+            state: { cartItems: cartItems }
+        });
+    };
+
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
             <h1 className="text-3xl font-extrabold text-gray-800 mb-6">Your Cart</h1>
 
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <ul className="divide-y divide-gray-100">
-                    {cartItems.map((item) => ( // ✅ removed unused 'index'
+                    {cartItems.map((item) => (
                         <li key={`${item.id}-${item.variant?.color || 'default'}`} className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:bg-gray-50 transition">
                             <img
                                 src={item.image || 'https://via.placeholder.com/80'}
@@ -72,6 +79,7 @@ const Cart = () => {
                             Clear Cart
                         </button>
                         <button
+                            onClick={handleCheckout}
                             disabled={cartItems.length === 0}
                             className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >

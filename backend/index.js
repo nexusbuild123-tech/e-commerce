@@ -14,31 +14,42 @@ app.use(cors({
 // ***** INCREASE JSON PAYLOAD LIMIT TO 100MB *****
 app.use(express.json({ limit: '100mb' }));
 
-// Database configuration
 const dbConfig = {
-    host: "127.0.0.1",
-    user: "root",
-    password: "",
-    database: "CRM_TRADERS",
-    port: 3306,
-    // Increase connection timeout and packet size
-    connectTimeout: 60000
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 3306 // MySQL ka default port 3306 hi hota hai
 };
+
+
+// // Database configuration
+// const dbConfig = {
+//     host: "127.0.0.1",
+//     user: "root",
+//     password: "",
+//     database: "CRM_TRADERS",
+//     port: 3306,
+//     connectTimeout: 60000
+// };
 
 // Create a connection pool
 const pool = mysql.createPool(dbConfig);
 
-// -------- FIX: Increase max_allowed_packet for each connection ----------
-pool.on('connection', function (connection) {
-    // Set session variable to 1GB (1073741824 bytes)
-    connection.query('SET SESSION max_allowed_packet = 1073741824', function (err) {
-        if (err) {
-            console.error('⚠️ Failed to set max_allowed_packet:', err.message);
-        } else {
-            console.log('✅ Session max_allowed_packet set to 1GB');
-        }
-    });
-});
+// -------- FIX: Attempt to set global max_allowed_packet (once) ----------
+(async function setMaxAllowedPacket() {
+    try {
+        const connection = await pool.getConnection();
+        await connection.query('SET GLOBAL max_allowed_packet = 1073741824');
+        console.log('✅ Global max_allowed_packet set to 1GB');
+        connection.release();
+    } catch (err) {
+        console.warn('⚠️ Could not set max_allowed_packet globally. Please set it manually in MySQL config (my.ini / my.cnf) or run:');
+        console.warn('   SET GLOBAL max_allowed_packet = 1073741824;');
+        console.warn('   (requires SUPER or SYSTEM_VARIABLES_ADMIN privilege)');
+        console.warn('   The server will still work for normal-sized images.');
+    }
+})();
 
 // GLOBAL IN-MEMORY STORE FOR OTP TOKENS
 const otpStore = {};
@@ -613,8 +624,124 @@ app.delete("/admin/product-type-gallery/:id", authenticateApiKey, async (req, re
     }
 });
 
+// ==========================================
+// ORDERS ROUTES
+// ==========================================
+
+// Public: Place a new order (Cash on Delivery)
+app.post("/place-order", async (req, res) => {
+    const {
+        product_type_id,
+        variant_id,
+        product_name,
+        variant_name,
+        price,
+        quantity,
+        total,
+        customer_name,
+        customer_email,
+        customer_phone,
+        delivery_address
+    } = req.body;
+
+    // Basic validation
+    if (!product_name || !price || !customer_name || !customer_email || !customer_phone || !delivery_address) {
+        return res.status(400).json({ status: "error", message: "All fields are required!" });
+    }
+
+    try {
+        const sql = `
+            INSERT INTO orders 
+            (product_type_id, variant_id, product_name, variant_name, price, quantity, total, 
+             customer_name, customer_email, customer_phone, delivery_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const [result] = await pool.execute(sql, [
+            product_type_id || null,
+            variant_id || null,
+            product_name,
+            variant_name || null,
+            price,
+            quantity || 1,
+            total || (price * (quantity || 1)),
+            customer_name,
+            customer_email,
+            customer_phone,
+            delivery_address
+        ]);
+        return res.status(201).json({ 
+            status: "success", 
+            message: "Order placed successfully!",
+            order_id: result.insertId
+        });
+    } catch (err) {
+        console.error("❌ Order placement error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Get all orders
+app.get("/admin/orders", authenticateApiKey, async (req, res) => {
+    try {
+        const [orders] = await pool.execute("SELECT * FROM orders ORDER BY created_at DESC");
+        return res.status(200).json({ status: "success", orders });
+    } catch (err) {
+        console.error("❌ Error fetching orders:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Update order status
+app.put("/admin/orders/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!status) {
+        return res.status(400).json({ status: "error", message: "Status is required" });
+    }
+    try {
+        await pool.execute("UPDATE orders SET status = ? WHERE id = ?", [status, id]);
+        return res.status(200).json({ status: "success", message: "Order status updated" });
+    } catch (err) {
+        console.error("❌ Error updating order:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Public: Get order by ID for tracking
+app.get("/track-order/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await pool.execute("SELECT * FROM orders WHERE id = ?", [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ status: "error", message: "Order not found" });
+        }
+        return res.status(200).json({ status: "success", order: rows[0] });
+    } catch (err) {
+        console.error("❌ Error fetching order:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Public: Get all orders for a user by email
+app.get("/my-orders/:email", async (req, res) => {
+    const { email } = req.params;
+    if (!email) {
+        return res.status(400).json({ status: "error", message: "Email is required" });
+    }
+    try {
+        const [orders] = await pool.execute(
+            "SELECT * FROM orders WHERE customer_email = ? ORDER BY created_at DESC",
+            [email]
+        );
+        return res.status(200).json({ status: "success", orders });
+    } catch (err) {
+        console.error("❌ Error fetching user orders:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
 // START SERVER
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`✅ Server is running on port ${PORT}`);
 });

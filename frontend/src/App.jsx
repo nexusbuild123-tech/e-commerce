@@ -10,6 +10,7 @@ import Register from './Pages/Register';
 import Login from './Pages/Login';
 import Profile from './components/Profile';
 import AllProducts from './Pages/AllProducts';
+import TrackOrder from './Pages/TrackOrders';
 
 function App() {
   return (
@@ -28,6 +29,9 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/products" element={<AllProducts />} />
+              <Route path="/track-order" element={<TrackOrder />} />
+
+
               {/* 404 Fallback */}
               <Route path="*" element={<div className="text-center py-20"><h2 className="text-2xl font-bold">Page Not Found</h2><p className="text-gray-500">The page you are looking for does not exist.</p></div>} />
             </Routes>

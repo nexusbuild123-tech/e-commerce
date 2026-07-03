@@ -217,10 +217,11 @@ const Home = () => {
                 <h3 className="text-gray-400 font-semibold mb-4 text-xs uppercase tracking-wider">Registered Office Address:</h3>
                 <p className="text-gray-300 leading-relaxed text-xs">
                   CRM Traders, <br/>
-                  Bengaluru, 560103, <br/>
-                  Karnataka, India <br/>
-                  CIN : U51109KA2012PTC066107 <br/>
-                  Telephone: <span className="text-blue-400">044-45614700</span>
+                  Purba Medinipur, 721423, <br/>
+                  VILL - Shyampur, PO- Shyampur, PS- Ramnagar, <br/>
+                  West Bengal, India <br/>
+                  Telephone: <span className="text-blue-400">9899518819</span> <br/>
+                  Email: <span className="text-blue-400">crmtraders25@gmail.com</span>
                 </p>
               </div>
             </div>

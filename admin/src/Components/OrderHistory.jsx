@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const Orders = () => {
+const OrderHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState(null);
@@ -14,11 +14,11 @@ const Orders = () => {
             });
             const data = await res.json();
             if (data.status === 'success') {
-                // ✅ Filter out delivered and cancelled orders
-                const activeOrders = data.orders.filter(
-                    o => o.status !== 'delivered' && o.status !== 'cancelled'
+                // ✅ Only delivered and cancelled
+                const history = data.orders.filter(
+                    o => o.status === 'delivered' || o.status === 'cancelled'
                 );
-                setOrders(activeOrders);
+                setOrders(history);
             }
         } catch (error) {
             console.error('Error fetching orders:', error);
@@ -32,37 +32,17 @@ const Orders = () => {
         fetchOrders();
     }, []);
 
-    const updateStatus = async (id, newStatus) => {
-        if (!window.confirm(`Change order #${id} status to ${newStatus}?`)) return;
-        try {
-            const res = await fetch(`${apiUrl}/admin/orders/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': 'nexusBuild@123+!'
-                },
-                body: JSON.stringify({ status: newStatus })
-            });
-            if (res.ok) {
-                alert('Status updated!');
-                fetchOrders(); // refresh the list – the order will disappear if delivered/cancelled
-            }
-        } catch (error) {
-            console.error('Update error:', error);
-        }
-    };
-
     const toggleExpand = (id) => {
         setExpandedId(expandedId === id ? null : id);
     };
 
-    if (loading) return <p className="text-gray-500">Loading orders...</p>;
+    if (loading) return <p className="text-gray-500">Loading order history...</p>;
 
     return (
         <div className="space-y-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-gray-800">Active Orders</h2>
+            <h2 className="text-xl md:text-2xl font-extrabold text-gray-800">Order History (Delivered / Cancelled)</h2>
             {orders.length === 0 ? (
-                <p className="text-gray-400 italic">No active orders.</p>
+                <p className="text-gray-400 italic">No completed or cancelled orders yet.</p>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full bg-white rounded-2xl shadow border border-gray-100">
@@ -89,10 +69,8 @@ const Orders = () => {
                                         <td className="px-4 py-3 text-sm font-bold">₹{order.total}</td>
                                         <td className="px-4 py-3">
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                                order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                                                order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
-                                                'bg-gray-100 text-gray-700'
+                                                order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                                                'bg-red-100 text-red-700'
                                             }`}>
                                                 {order.status}
                                             </span>
@@ -100,21 +78,10 @@ const Orders = () => {
                                         <td className="px-4 py-3">
                                             <button
                                                 onClick={() => toggleExpand(order.id)}
-                                                className="text-blue-600 hover:text-blue-800 text-xs font-bold mr-2"
+                                                className="text-blue-600 hover:text-blue-800 text-xs font-bold"
                                             >
                                                 {expandedId === order.id ? 'Hide' : 'Details'}
                                             </button>
-                                            <select
-                                                value={order.status}
-                                                onChange={(e) => updateStatus(order.id, e.target.value)}
-                                                className="text-xs border rounded px-2 py-1"
-                                            >
-                                                <option value="pending">Pending</option>
-                                                <option value="confirmed">Confirmed</option>
-                                                <option value="shipped">Shipped</option>
-                                                <option value="delivered">Delivered</option>
-                                                <option value="cancelled">Cancelled</option>
-                                            </select>
                                         </td>
                                     </tr>
                                     {expandedId === order.id && (
@@ -151,4 +118,4 @@ const Orders = () => {
     );
 };
 
-export default Orders;
+export default OrderHistory;

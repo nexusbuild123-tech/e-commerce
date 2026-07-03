@@ -5,6 +5,8 @@ import ProductCard from "./ProductCard";
 import ShopByCategory from "./ShopByCategory"; 
 import ProductTypes from "./ProductTypes";
 import ProductDetails from "./ProductDetails";
+import Orders from "./Orders"; // ✅ NEW
+import OrderHistory from './OrderHistory';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -33,14 +35,14 @@ const Dashboard = () => {
   const [isCategoryUploading, setIsCategoryUploading] = useState(false);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
 
-  // --- PRODUCT TYPES STATES (with specifications) ---
+  // --- PRODUCT TYPES STATES ---
   const [productTypes, setProductTypes] = useState([]);
   const [productTypeForm, setProductTypeForm] = useState({ 
     id: null, 
     name: "", 
     slug: "", 
     description: "",
-    specifications: "", // NEW
+    specifications: "",
     image: "",
     price: "",
     discount: "",
@@ -269,7 +271,6 @@ const Dashboard = () => {
     if (fileInput) fileInput.value = "";
   };
 
-  // UPDATED resetProductTypeForm – clears all fields including specifications
   const resetProductTypeForm = () => {
     setIsEditingProductType(false);
     setProductTypeForm({ 
@@ -294,6 +295,7 @@ const Dashboard = () => {
     { name: "Product Types", icon: "🗂️" }, 
     { name: "Product Details", icon: "📦" },
     { name: "Order", icon: "🛒" },
+    { name: "Order History", icon: "📜" },
   ];
 
   // ==========================================
@@ -381,6 +383,13 @@ const Dashboard = () => {
 
       case "Product Details":
         return <ProductDetails />;
+
+      // ✅ NEW: Order tab
+      case "Order":
+        return <Orders />;
+
+      case "Order History":
+    return <OrderHistory />;
 
       default:
         return null;
