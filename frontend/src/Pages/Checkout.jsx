@@ -2,16 +2,16 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Toast from '../components/Toast';
+import LocationPicker from '../components/LocationPicker';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const Checkout = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { clearCart } = useCart(); // ✅ only clearCart, not cartItems
+    const { clearCart } = useCart();
     const state = location.state || {};
 
-    // ✅ Memoize items to prevent unnecessary re-renders
     const items = useMemo(() => {
         return state.cartItems || (state.product ? [state.product] : []);
     }, [state.cartItems, state.product]);
@@ -29,18 +29,23 @@ const Checkout = () => {
                 customer_name: user.name || '',
                 customer_email: user.email || '',
                 customer_phone: user.mobile || '',
-                delivery_address: ''
+                city: '',
+                state: '',
+                pincode: '',
+                delivery_address: '' 
             };
         }
         return {
             customer_name: '',
             customer_email: '',
             customer_phone: '',
+            city: '',
+            state: '',
+            pincode: '',
             delivery_address: ''
         };
     });
 
-    // ✅ Dependency array now stable (items is memoized)
     useEffect(() => {
         if (items.length === 0) {
             navigate('/');
@@ -57,16 +62,32 @@ const Checkout = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // FIX: Map se aayi hui full detailed address ko handle aur set karne ke liye
+    const handleLocationSelected = (data) => {
+        setFormData(prev => ({
+            ...prev,
+            city: data.city || prev.city,
+            state: data.state || prev.state,
+            pincode: data.pincode || prev.pincode,
+            // Full verified address textarea me load karwa diya
+            delivery_address: data.fullAddress || prev.delivery_address 
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.customer_name || !formData.customer_email || !formData.customer_phone || !formData.delivery_address) {
-            setToast({ message: 'Please fill all fields.', type: 'error' });
+        if (!formData.customer_name || !formData.customer_email || !formData.customer_phone || !formData.delivery_address || !formData.city || !formData.pincode) {
+            setToast({ message: 'Please fill all fields (Name, Email, Phone, Address, City, Pincode).', type: 'error' });
             return;
         }
 
+        // Final structured address dispatch karne ke liye
+        const finalAddress = formData.delivery_address.includes(formData.city) 
+            ? formData.delivery_address 
+            : `${formData.delivery_address}, ${formData.city}, ${formData.state}, ${formData.pincode}`;
+
         setLoading(true);
         try {
-            // Place orders for each item
             for (const item of items) {
                 const payload = {
                     product_type_id: item.id,
@@ -79,7 +100,7 @@ const Checkout = () => {
                     customer_name: formData.customer_name,
                     customer_email: formData.customer_email,
                     customer_phone: formData.customer_phone,
-                    delivery_address: formData.delivery_address
+                    delivery_address: finalAddress
                 };
 
                 const res = await fetch(`${apiUrl}/place-order`, {
@@ -97,7 +118,6 @@ const Checkout = () => {
                 }
             }
 
-            // If cart order, clear the cart
             if (isFromCart) {
                 clearCart();
             }
@@ -185,17 +205,62 @@ const Checkout = () => {
                                     required
                                 />
                             </div>
+
+                            {/* Map Picker Component */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-600">Delivery Address *</label>
+                                <label className="block text-sm font-bold text-gray-600 mb-1">Select Delivery Location on Map</label>
+                                <LocationPicker onLocationSelected={handleLocationSelected} />
+                            </div>
+
+                            {/* Auto-filled details */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-600">City *</label>
+                                    <input
+                                        type="text"
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-600">Pincode *</label>
+                                    <input
+                                        type="text"
+                                        name="pincode"
+                                        value={formData.pincode}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-600">State</label>
+                                <input
+                                    type="text"
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-600">Address (House / Street / Landmark) *</label>
                                 <textarea
                                     name="delivery_address"
                                     rows="3"
                                     value={formData.delivery_address}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
+                                    placeholder="Select location above or type complete address manually"
                                     required
                                 />
                             </div>
+
                             <button
                                 type="submit"
                                 disabled={loading}

@@ -91,7 +91,16 @@ const ProductDetail = () => {
 
     const isSelectedColorAvailable = selectedColor ? selectedColor.is_available === true : false;
 
+    // ---- ADD TO CART with Login Check ----
     const handleAddToCart = () => {
+        // ✅ Check if user is logged in
+        const user = localStorage.getItem('user');
+        if (!user) {
+            setToast({ message: 'Please login to add items to cart.', type: 'error' });
+            setTimeout(() => navigate('/login'), 2000);
+            return;
+        }
+
         if (!selectedColor) return;
         if (!isSelectedColorAvailable) {
             setToast({ message: 'This color is out of stock!', type: 'error' });
@@ -104,8 +113,16 @@ const ProductDetail = () => {
         });
     };
 
-    // ---- BUY NOW – redirect to checkout ----
+    // ---- BUY NOW with Login Check ----
     const handleBuyNow = () => {
+        // ✅ Check if user is logged in
+        const user = localStorage.getItem('user');
+        if (!user) {
+            setToast({ message: 'Please login to proceed with purchase.', type: 'error' });
+            setTimeout(() => navigate('/login'), 2000);
+            return;
+        }
+
         if (!isSelectedColorAvailable) {
             setToast({ message: 'This color is out of stock!', type: 'error' });
             return;

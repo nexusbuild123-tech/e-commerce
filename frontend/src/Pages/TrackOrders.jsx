@@ -8,47 +8,82 @@ const TrackOrders = () => {
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState('active'); // 'active' or 'history'
+    const [activeTab, setActiveTab] = useState('active');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            const user = localStorage.getItem('user');
-            if (!user) {
-                setError('Please login to view your orders.');
+    const fetchOrders = async () => {
+        const user = localStorage.getItem('user');
+        if (!user) {
+            setError('Please login to view your orders.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const userData = JSON.parse(user);
+            const email = userData.email;
+            if (!email) {
+                setError('User email not found.');
                 setLoading(false);
                 return;
             }
 
-            try {
-                const userData = JSON.parse(user);
-                const email = userData.email;
-                if (!email) {
-                    setError('User email not found.');
-                    setLoading(false);
-                    return;
-                }
-
-                const res = await fetch(`${apiUrl}/my-orders/${encodeURIComponent(email)}`);
-                const data = await res.json();
-                if (data.status === 'success') {
-                    setAllOrders(data.orders);
-                } else {
-                    setError(data.message || 'Failed to fetch orders.');
-                }
-            } catch (err) {
-                console.error(err);
-                setError('Something went wrong. Please try again.');
-            } finally {
-                setLoading(false);
+            const res = await fetch(`${apiUrl}/my-orders/${encodeURIComponent(email)}`);
+            const data = await res.json();
+            if (data.status === 'success') {
+                setAllOrders(data.orders);
+            } else {
+                setError(data.message || 'Failed to fetch orders.');
             }
-        };
+        } catch (err) {
+            console.error(err);
+            setError('Something went wrong. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchOrders();
     }, []);
 
     const toggleOrderDetails = (orderId) => {
         setSelectedOrder(selectedOrder === orderId ? null : orderId);
+    };
+
+    // --- Cancel order ---
+    const handleCancelOrder = async (orderId) => {
+        if (!window.confirm('Are you sure you want to cancel this order?')) return;
+
+        const user = localStorage.getItem('user');
+        if (!user) {
+            alert('Please login to cancel.');
+            return;
+        }
+        const userData = JSON.parse(user);
+        const email = userData.email;
+
+        try {
+            const res = await fetch(`${apiUrl}/cancel-order/${orderId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': 'nexusBuild@123+!'
+                },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert('Order cancelled successfully.');
+                fetchOrders(); // refresh list
+            } else {
+                alert(data.message || 'Failed to cancel order.');
+            }
+        } catch (error) {
+            console.error('Cancel error:', error);
+            alert('Something went wrong. Please try again.');
+        }
     };
 
     // Filter orders based on active tab
@@ -126,56 +161,22 @@ const TrackOrders = () => {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {displayedOrders.map((order) => (
-                        <div
-                            key={order.id}
-                            className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
-                        >
-                            {/* Order Header */}
+                    {displayedOrders.map((order) => {
+                        const isCancellable = order.status === 'pending' || order.status === 'confirmed';
+                        return (
                             <div
-                                onClick={() => toggleOrderDetails(order.id)}
-                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition"
+                                key={order.id}
+                                className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
                             >
-                                <div className="flex items-center gap-4">
-                                    <span className="font-mono text-sm text-gray-500">#{order.id}</span>
-                                    <span className="font-bold text-gray-800">{order.product_name}</span>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                                        order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
-                                        order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                        'bg-red-100 text-red-700'
-                                    }`}>
-                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="font-bold text-blue-600">₹{order.total}</span>
-                                    <svg
-                                        className={`w-5 h-5 transition-transform ${selectedOrder === order.id ? 'rotate-180' : ''}`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* Expanded Details */}
-                            {selectedOrder === order.id && (
-                                <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-3">
-                                    {order.variant_name && (
-                                        <p className="text-sm"><span className="font-bold">Variant:</span> {order.variant_name}</p>
-                                    )}
-                                    <p className="text-sm"><span className="font-bold">Quantity:</span> {order.quantity}</p>
-                                    <p className="text-sm"><span className="font-bold">Total:</span> ₹{order.total}</p>
-                                    <p className="text-sm"><span className="font-bold">Delivery Address:</span> {order.delivery_address}</p>
-                                    <p className="text-sm"><span className="font-bold">Placed on:</span> {new Date(order.created_at).toLocaleDateString()}</p>
-                                    <p className="text-sm">
-                                        <span className="font-bold">Status:</span>
-                                        <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                                {/* Order Header */}
+                                <div
+                                    onClick={() => toggleOrderDetails(order.id)}
+                                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-mono text-sm text-gray-500">#{order.id}</span>
+                                        <span className="font-bold text-gray-800">{order.product_name}</span>
+                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                                             order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                             order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
                                             order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
@@ -184,11 +185,62 @@ const TrackOrders = () => {
                                         }`}>
                                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                                         </span>
-                                    </p>
+                                        {isCancellable && (
+                                            <span className="text-xs text-gray-400">(Cancellable)</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-bold text-blue-600">₹{order.total}</span>
+                                        <svg
+                                            className={`w-5 h-5 transition-transform ${selectedOrder === order.id ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+
+                                {/* Expanded Details */}
+                                {selectedOrder === order.id && (
+                                    <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-3">
+                                        {order.variant_name && (
+                                            <p className="text-sm"><span className="font-bold">Variant:</span> {order.variant_name}</p>
+                                        )}
+                                        <p className="text-sm"><span className="font-bold">Quantity:</span> {order.quantity}</p>
+                                        <p className="text-sm"><span className="font-bold">Total:</span> ₹{order.total}</p>
+                                        <p className="text-sm"><span className="font-bold">Delivery Address:</span> {order.delivery_address}</p>
+                                        <p className="text-sm"><span className="font-bold">Placed on:</span> {new Date(order.created_at).toLocaleDateString()}</p>
+                                        <p className="text-sm">
+                                            <span className="font-bold">Status:</span>
+                                            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                                                order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
+                                                order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                                                'bg-red-100 text-red-700'
+                                            }`}>
+                                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                            </span>
+                                        </p>
+                                        {isCancellable && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCancelOrder(order.id);
+                                                }}
+                                                className="mt-2 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition"
+                                            >
+                                                Cancel Order
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

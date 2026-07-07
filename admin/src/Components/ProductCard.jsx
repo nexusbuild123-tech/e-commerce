@@ -1,3 +1,6 @@
+import { broadcastRefresh } from '../utils/broadcast';
+
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const ProductCard = ({
   products,
@@ -7,17 +10,72 @@ const ProductCard = ({
   isEditingProduct,
   productForm,
   setProductForm,
-  handleSaveProductCard,
   isProductUploading,
+  setIsProductUploading,
   handleProductImageChange,
   resetProductForm,
   handleEditProductClick,
-  handleDeleteProductCard,
+  fetchProducts, // required to refresh list
 }) => {
   const totalPages = Math.ceil(products.length / productsPerPage);
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+
+  // Override save handler
+  const handleSaveProductCard = async (e) => {
+    e.preventDefault();
+    if (!productForm.name || !productForm.category || !productForm.image) {
+      return alert("Name, Category and Image are required fields!");
+    }
+
+    setIsProductUploading(true);
+    const url = isEditingProduct 
+      ? `${apiUrl}/admin/update-product-card/${productForm.id}` 
+      : `${apiUrl}/admin/add-product-card`;
+    
+    const method = isEditingProduct ? "PUT" : "POST";
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json", "x-api-key": "nexusBuild@123+!" },
+        body: JSON.stringify(productForm),
+      });
+
+      if (response.ok) {
+        alert(isEditingProduct ? "Product Card Updated Successfully!" : "Product Card Added Successfully!");
+        broadcastRefresh();
+        resetProductForm();
+        fetchProducts();
+      } else {
+        alert("Something went wrong with the database API transaction.");
+      }
+    } catch (error) {
+      console.error("Product database write failed", error);
+    } finally {
+      setIsProductUploading(false);
+    }
+  };
+
+  // Override delete handler
+  const handleDeleteProductCard = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product card permanently?")) return;
+    try {
+      const response = await fetch(`${apiUrl}/admin/delete-product-card/${id}`, {
+        method: "DELETE",
+        headers: { "x-api-key": "nexusBuild@123+!" },
+      });
+      if (response.ok) {
+        alert("Product Card purged from database.");
+        broadcastRefresh();
+        fetchProducts();
+        if (productForm.id === id) resetProductForm();
+      }
+    } catch (error) {
+      console.error("Error running delete stack on card", error);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">

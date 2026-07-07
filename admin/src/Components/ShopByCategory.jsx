@@ -1,6 +1,5 @@
 import { useState } from 'react';
-
-
+import { broadcastRefresh } from '../utils/broadcast';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -16,21 +15,15 @@ const ShopByCategory = ({
   resetCategoryForm,
 }) => {
   
-  // --- SLIDER / PAGINATION STATES & LOGIC ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4; // Sliding system ke liye 4 cards per view perfect hain
+  const itemsPerPage = 4;
 
-  // Total slides calculate karein
   const totalPages = Math.ceil(categories.length / itemsPerPage) || 1;
-
-  // Safe current page derive karein (deletion safe)
   const activePage = Math.min(currentPage, totalPages);
-
   const indexOfLastItem = activePage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentCategories = categories.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Auto-generate slug from name input
   const handleNameChange = (e) => {
     const nameVal = e.target.value;
     const slugVal = nameVal
@@ -45,7 +38,6 @@ const ShopByCategory = ({
     }));
   };
 
-  // Image File Reader Processor (Base64)
   const handleCategoryImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -57,7 +49,6 @@ const ShopByCategory = ({
     }
   };
 
-  // Save or Update Category Handler
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     if (!categoryForm.name || !categoryForm.slug || !categoryForm.image) {
@@ -87,6 +78,7 @@ const ShopByCategory = ({
 
       if (response.ok) {
         alert(isEditingCategory ? "Category Updated Successfully!" : "Category Added Successfully!");
+        broadcastRefresh(); // ✅ Notify frontend
         resetCategoryForm();
         fetchCategories();
       } else {
@@ -99,7 +91,6 @@ const ShopByCategory = ({
     }
   };
 
-  // Delete Category Handler
   const handleDeleteCategory = async (id) => {
     if (!window.confirm("Are you sure you want to delete this category permanently?")) return;
     try {
@@ -109,6 +100,7 @@ const ShopByCategory = ({
       });
       if (response.ok) {
         alert("Category deleted successfully.");
+        broadcastRefresh(); // ✅ Notify frontend
         fetchCategories();
         if (categoryForm.id === id) resetCategoryForm();
       }
@@ -129,16 +121,13 @@ const ShopByCategory = ({
 
   return (
     <div className="space-y-6">
-      {/* HEADER SECTION */}
       <div>
         <h2 className="text-xl md:text-2xl font-extrabold text-gray-800">Shop By Category Management</h2>
         <p className="text-sm text-gray-500 mt-1">Create, update, and manage your storefront product categories.</p>
       </div>
 
-      {/* MAIN SIDE-BY-SIDE SPLIT LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* LEFT COLUMN: ADD/EDIT FORM */}
+        {/* Left: Form */}
         <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm sticky top-6">
           <h3 className="text-base font-bold text-gray-700 mb-4">
             {isEditingCategory ? "📝 Edit Existing Category" : "✨ Add New Category"}
@@ -205,78 +194,40 @@ const ShopByCategory = ({
           </form>
         </div>
 
-        {/* RIGHT COLUMN: SLIDING CARD CAROUSEL SYSTEM */}
+        {/* Right: Slider */}
         <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between h-full min-h-[500px]">
-          
-          {/* HEADER CONTROL BAR */}
           <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
             <div>
               <h3 className="text-base font-bold text-gray-700">Active Categories</h3>
               <p className="text-xs text-gray-400 mt-0.5">Total {categories.length} items loaded</p>
             </div>
-
-            {/* QUICK PREV / NEXT TOP TRIGGERS */}
             {totalPages > 1 && (
               <div className="flex gap-1.5">
-                <button
-                  onClick={() => setCurrentPage(activePage - 1)}
-                  disabled={activePage === 1}
-                  className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm text-sm hover:bg-gray-50 disabled:opacity-30 transition"
-                >
-                  ◀
-                </button>
-                <button
-                  onClick={() => setCurrentPage(activePage + 1)}
-                  disabled={activePage === totalPages}
-                  className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm text-sm hover:bg-gray-50 disabled:opacity-30 transition"
-                >
-                  ▶
-                </button>
+                <button onClick={() => setCurrentPage(activePage - 1)} disabled={activePage === 1} className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm text-sm hover:bg-gray-50 disabled:opacity-30 transition">◀</button>
+                <button onClick={() => setCurrentPage(activePage + 1)} disabled={activePage === totalPages} className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm text-sm hover:bg-gray-50 disabled:opacity-30 transition">▶</button>
               </div>
             )}
           </div>
 
-          {/* CAROUSEL SLIDER VIEWTRACK */}
           <div className="p-5 flex-1">
             {categories.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-gray-400 italic py-20">
-                No categories found in the system store database.
-              </div>
+              <div className="h-full flex items-center justify-center text-sm text-gray-400 italic py-20">No categories found.</div>
             ) : (
-              // key={activePage} changes dynamic smooth entry triggers when sliding pages
               <div key={activePage} className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn transition-all duration-300">
                 {currentCategories.map((category) => (
-                  <div 
-                    key={category.id} 
-                    className="group relative bg-gray-50/60 hover:bg-white border border-gray-100 hover:border-blue-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
-                  >
-                    {/* Top Section: Image & Meta */}
+                  <div key={category.id} className="group relative bg-gray-50/60 hover:bg-white border border-gray-100 hover:border-blue-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                     <div className="flex gap-3 items-start">
                       <div className="w-14 h-14 rounded-xl overflow-hidden border border-gray-200/80 shrink-0 bg-white shadow-inner">
                         <img src={category.image} alt={category.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                       </div>
                       <div className="overflow-hidden">
                         <h4 className="font-extrabold text-gray-800 text-sm truncate">{category.name}</h4>
-                        <span className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[11px] font-mono mt-1 truncate max-w-full">
-                          /{category.slug}
-                        </span>
+                        <span className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[11px] font-mono mt-1 truncate max-w-full">/{category.slug}</span>
                       </div>
                     </div>
-
-                    {/* Bottom Action Controls */}
                     <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
-                      <button
-                        onClick={() => handleEditClick(category)}
-                        className="flex-1 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(category.id)}
-                        className="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
-                      >
-                        🗑️ Delete
-                      </button>
+                      <button onClick={() => handleEditClick(category)} className="flex-1 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">✏️ Edit</button>
+                      <button onClick={() => handleDeleteCategory(category.id)} className="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">🗑️ Delete</button>
                     </div>
                   </div>
                 ))}
@@ -284,49 +235,21 @@ const ShopByCategory = ({
             )}
           </div>
 
-          {/* SLIDER FOOTER NAVIGATION CONTROLS */}
           {totalPages > 1 && (
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
-              <span className="text-xs font-bold text-gray-500">
-                Slide <span className="text-blue-600">{activePage}</span> of {totalPages}
-              </span>
-
-              {/* DOT INDICATORS SYSTEM */}
+              <span className="text-xs font-bold text-gray-500">Slide <span className="text-blue-600">{activePage}</span> of {totalPages}</span>
               <div className="flex gap-1.5 items-center">
                 {Array.from({ length: totalPages }, (_, index) => (
-                  <button
-                    key={index + 1}
-                    onClick={() => setCurrentPage(index + 1)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      activePage === index + 1 ? 'w-6 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
+                  <button key={index + 1} onClick={() => setCurrentPage(index + 1)} className={`h-2 rounded-full transition-all duration-300 ${activePage === index + 1 ? 'w-6 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-gray-400'}`} />
                 ))}
               </div>
-
-              {/* FULL CONTROL BUTTONS */}
               <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(activePage - 1)}
-                  disabled={activePage === 1}
-                  className="px-3 py-1.5 text-xs font-bold rounded-xl border bg-white hover:bg-gray-50 text-gray-600 transition disabled:opacity-40"
-                >
-                  ◀ Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(activePage + 1)}
-                  disabled={activePage === totalPages}
-                  className="px-3 py-1.5 text-xs font-bold rounded-xl border bg-white hover:bg-gray-50 text-gray-600 transition disabled:opacity-40"
-                >
-                  Next ▶
-                </button>
+                <button onClick={() => setCurrentPage(activePage - 1)} disabled={activePage === 1} className="px-3 py-1.5 text-xs font-bold rounded-xl border bg-white hover:bg-gray-50 text-gray-600 transition disabled:opacity-40">◀ Previous</button>
+                <button onClick={() => setCurrentPage(activePage + 1)} disabled={activePage === totalPages} className="px-3 py-1.5 text-xs font-bold rounded-xl border bg-white hover:bg-gray-50 text-gray-600 transition disabled:opacity-40">Next ▶</button>
               </div>
             </div>
           )}
-
         </div>
-
       </div>
     </div>
   );

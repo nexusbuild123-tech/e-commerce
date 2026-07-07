@@ -5,8 +5,8 @@ import ProductCard from "./ProductCard";
 import ShopByCategory from "./ShopByCategory"; 
 import ProductTypes from "./ProductTypes";
 import ProductDetails from "./ProductDetails";
-import Orders from "./Orders"; // ✅ NEW
-import OrderHistory from './OrderHistory';
+import Orders from "./Orders";
+import OrderHistory from "./OrderHistory";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -50,6 +50,9 @@ const Dashboard = () => {
   });
   const [isProductTypeUploading, setIsProductTypeUploading] = useState(false);
   const [isEditingProductType, setIsEditingProductType] = useState(false);
+
+  // --- ORDERS STATE ---
+  const [orders, setOrders] = useState([]);
 
   // --- PAGINATION STATE ---
   const productsPerPage = 4;
@@ -96,6 +99,16 @@ const Dashboard = () => {
     } catch (error) { console.error("Product types fetch failed", error); }
   }, []);
 
+  const fetchOrders = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiUrl}/admin/orders`, {
+        headers: { "x-api-key": "nexusBuild@123+!" }
+      });
+      const data = await response.json();
+      if (data.status === "success") setOrders(data.orders);
+    } catch (error) { console.error("Orders fetch failed", error); }
+  }, []);
+
   // Multi-Tab Data Sync System
   useEffect(() => {
     const loadBannersData = async () => {
@@ -104,6 +117,7 @@ const Dashboard = () => {
         await fetchProducts();
         await fetchCategories();
         await fetchProductTypes();
+        await fetchOrders();
       } else if (activeTab === "Home Banner") {
         await fetchBanners();
       } else if (activeTab === "Product Card") {
@@ -116,7 +130,7 @@ const Dashboard = () => {
       }
     };
     loadBannersData();
-  }, [activeTab, fetchBanners, fetchProducts, fetchCategories, fetchProductTypes]);
+  }, [activeTab, fetchBanners, fetchProducts, fetchCategories, fetchProductTypes, fetchOrders]);
 
   const handleLogout = () => {
     localStorage.removeItem("admin_user");
@@ -304,13 +318,18 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "Dashboard": {
+        // ✅ Corrected stats
+        const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
+        const completedOrders = orders.filter(o => o.status === 'delivered' || o.status === 'cancelled');
+
         const statsData = [
           { name: "Home Banner", count: banners.length, icon: "🖼️", bg: "bg-blue-50 text-blue-600 border-blue-200" },
           { name: "Shop By Category", count: categories.length, icon: "🏷️", bg: "bg-purple-50 text-purple-600 border-purple-200" },
           { name: "Product Types", count: productTypes.length, icon: "🗂️", bg: "bg-indigo-50 text-indigo-600 border-indigo-200" },
-          { name: "Product Card", count: products.length, icon: "💳", bg: "bg-green-50 text-green-600 border-green-200" }, 
-          { name: "Product Details", count: 12, icon: "📦", bg: "bg-amber-50 text-amber-600 border-amber-200" },
-          { name: "Order", count: 25, icon: "🛒", bg: "bg-rose-50 text-rose-600 border-rose-200" },
+          { name: "Product Card", count: products.length, icon: "💳", bg: "bg-green-50 text-green-600 border-green-200" },
+          { name: "Product Details", count: productTypes.length, icon: "📦", bg: "bg-amber-50 text-amber-600 border-amber-200" }, // ✅ uses productTypes count
+          { name: "Order", count: activeOrders.length, icon: "🛒", bg: "bg-rose-50 text-rose-600 border-rose-200" }, // ✅ active orders
+          { name: "Order History", count: completedOrders.length, icon: "📜", bg: "bg-gray-50 text-gray-600 border-gray-200" }, // ✅ completed orders
         ];
 
         return (
@@ -384,12 +403,11 @@ const Dashboard = () => {
       case "Product Details":
         return <ProductDetails />;
 
-      // ✅ NEW: Order tab
       case "Order":
         return <Orders />;
 
       case "Order History":
-    return <OrderHistory />;
+        return <OrderHistory />;
 
       default:
         return null;
