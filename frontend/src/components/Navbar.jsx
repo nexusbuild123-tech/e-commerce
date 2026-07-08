@@ -9,9 +9,8 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
 
-  const { totalItems } = useCart(); // 👈 get cart count
+  const { totalItems } = useCart();
 
   const [location, setLocation] = useState(() => {
     const storedUser = localStorage.getItem("user");
@@ -30,26 +29,6 @@ const Navbar = () => {
   });
 
   const navigate = useNavigate();
-
-  // --- FETCH CATEGORIES ---
-  useEffect(() => {
-    let ignore = false;
-    const loadCategories = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/categories?t=${Date.now()}`);
-        const data = await response.json();
-        if (!ignore && data.status === "success") {
-          setCategories(data.categories || []);
-        }
-      } catch (error) {
-        console.error("Failed to load navbar categories", error);
-      }
-    };
-    loadCategories();
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   // --- LOCATION ---
   useEffect(() => {
@@ -358,7 +337,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* MOBILE DRAWER */}
+      {/* MOBILE DRAWER – Categories Removed */}
       {isMenuOpen && (
         <div className="md:hidden bg-white/90 backdrop-blur-xl border-t border-gray-100 mt-2 px-4 py-4 space-y-3 shadow-inner">
           <Link
@@ -376,31 +355,6 @@ const Navbar = () => {
           >
             All Products
           </Link>
-
-          {categories.length > 0 && (
-            <div className="border-y border-gray-100 py-2">
-              <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
-                Categories
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    to={`/category/${cat.slug}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-blue-600 bg-slate-50 p-2 rounded-lg"
-                  >
-                    <img
-                      src={cat.image}
-                      className="w-5 h-5 object-contain"
-                      alt=""
-                    />
-                    <span className="truncate">{cat.name}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
 
           <Link
             to="/track-order"
@@ -450,15 +404,24 @@ const Navbar = () => {
                 Logged in as{" "}
                 <b className="text-slate-800">{user.name.split(" ")[0]}</b>
               </span>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsMenuOpen(false);
-                }}
-                className="text-xs font-black text-red-500 hover:underline"
-              >
-                Logout 🚪
-              </button>
+              <div className="flex gap-2">
+                <Link
+                  to="/profile"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  Edit Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-xs font-black text-red-500 hover:underline"
+                >
+                  Logout 🚪
+                </button>
+              </div>
             </div>
           )}
         </div>

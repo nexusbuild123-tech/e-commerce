@@ -10,20 +10,13 @@ const isValidImageData = (url) => {
   const base64Part = url.split(',')[1];
   if (!base64Part) return false;
 
-  // Minimum length for a real image
   if (base64Part.length < 100) return false;
-
-  // Base64 length must be multiple of 4
   if (base64Part.length % 4 !== 0) return false;
-
-  // Only valid base64 characters
   if (!/^[A-Za-z0-9+/=]+$/.test(base64Part)) return false;
 
-  // Padding can only be '=' at the end, max 2
   const padding = base64Part.match(/=+$/);
   if (padding && padding[0].length > 2) return false;
 
-  // Test decode a chunk
   try {
     atob(base64Part.substring(0, 100));
     return true;
@@ -241,200 +234,44 @@ const ProductTypes = ({
 
   // ---------- Render ----------
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl md:text-2xl font-extrabold text-gray-800">Product Types Management</h2>
-        <p className="text-sm text-gray-500 mt-1">Configure structural product attributes and linking mapping nodes.</p>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-extrabold text-gray-800">Product Types Management</h2>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">Configure structural product attributes and linking mapping nodes.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* ✅ RESPONSIVE LAYOUT: Listing on top on mobile, side-by-side on desktop */}
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
         
-        {/* LEFT FORM */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm sticky top-6">
-          <h3 className="text-base font-bold text-gray-700 mb-4">
-            {isEditingProductType ? "📝 Modify Product Type" : "✨ Create New Type Node"}
-          </h3>
-          <form onSubmit={handleSaveProductType} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Type Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Branded Attire, Organic Foods"
-                value={productTypeForm.name}
-                onChange={handleNameChange}
-                className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Slug Routing URL</label>
-              <input
-                type="text"
-                placeholder="auto-generated-path"
-                value={productTypeForm.slug}
-                readOnly
-                className="w-full px-4 py-2 border bg-gray-50 rounded-xl focus:outline-none text-sm text-gray-500 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description / Spec Details</label>
-              <textarea
-                rows="3"
-                placeholder="Add summary notes regarding metadata properties structure..."
-                value={productTypeForm.description}
-                onChange={(e) => setProductTypeForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-
-            {/* Image Upload */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Image</label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="imageUploadInput"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageFileChange}
-                  className="flex-1 px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                {productTypeForm.image && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="px-3 py-2 bg-red-100 text-red-600 rounded-xl text-sm font-bold hover:bg-red-200 transition"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-              {productTypeForm.image && (
-                <div className="mt-2">
-                  {renderSafeImage(productTypeForm.image, 'Preview', 'h-16 w-16 object-cover rounded border')}
-                </div>
-              )}
-            </div>
-
-            {/* NEW FIELDS: Price, Discount, Rating */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Price ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={productTypeForm.price || ''}
-                  onChange={(e) => setProductTypeForm(prev => ({ ...prev, price: e.target.value }))}
-                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Discount (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={productTypeForm.discount || ''}
-                  onChange={(e) => setProductTypeForm(prev => ({ ...prev, discount: e.target.value }))}
-                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Rating (1-5)</label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max="5"
-                placeholder="4.5"
-                value={productTypeForm.rating || ''}
-                onChange={(e) => setProductTypeForm(prev => ({ ...prev, rating: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-
-            {/* Shop Category Dropdown */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Shop Category</label>
-              <select
-                value={productTypeForm.category_id || ""}
-                onChange={(e) => setProductTypeForm(prev => ({ ...prev, category_id: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                <option value="">-- None --</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Product Card Dropdown */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Associated Product Card</label>
-              <select
-                value={productTypeForm.product_card_id || ""}
-                onChange={(e) => setProductTypeForm(prev => ({ ...prev, product_card_id: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                <option value="">-- None --</option>
-                {productCards.map(card => (
-                  <option key={card.id} value={card.id}>{card.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                type="submit"
-                disabled={isProductTypeUploading}
-                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-md disabled:opacity-50"
-              >
-                {isProductTypeUploading ? "Saving Data..." : isEditingProductType ? "Update Parameters" : "Save Node"}
-              </button>
-              {isEditingProductType && (
-                <button
-                  type="button"
-                  onClick={resetProductTypeForm}
-                  className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-
-        {/* RIGHT COLUMN: LISTINGS */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between min-h-[500px]">
+        {/* RIGHT COLUMN: LISTINGS - Appears FIRST on mobile (order-1), SECOND on desktop (order-2) */}
+        <div className="w-full lg:w-7/12 order-1 lg:order-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between min-h-[400px] sm:min-h-[500px]">
           
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+          <div className="p-3 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50/50">
             <div>
               <h3 className="text-base font-bold text-gray-700">Active Structural Types</h3>
               <p className="text-xs text-gray-400 mt-0.5">Linked directly inside product metadata nodes</p>
             </div>
             {totalPages > 1 && (
-              <div className="flex gap-1">
-                <button onClick={() => setCurrentPage(activePage - 1)} disabled={activePage === 1} className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30">◀</button>
-                <button onClick={() => setCurrentPage(activePage + 1)} disabled={activePage === totalPages} className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30">▶</button>
+              <div className="flex gap-1 self-end sm:self-auto">
+                <button onClick={() => setCurrentPage(activePage - 1)} disabled={activePage === 1} className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30 transition">◀</button>
+                <button onClick={() => setCurrentPage(activePage + 1)} disabled={activePage === totalPages} className="w-8 h-8 flex items-center justify-center bg-white border rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30 transition">▶</button>
               </div>
             )}
           </div>
 
-          <div className="p-5 flex-1">
+          <div className="p-3 sm:p-5 flex-1">
             {productTypes.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-gray-400 italic py-20">
+              <div className="h-full flex items-center justify-center text-sm text-gray-400 italic py-12 sm:py-20">
                 No active operational product types configured yet.
               </div>
             ) : (
-              <div key={activePage} className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn transition-all duration-300">
+              <div key={activePage} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 animate-fadeIn transition-all duration-300">
                 {currentTypes.map((type) => (
-                  <div key={type.id} className="group bg-gray-50/60 hover:bg-white border border-gray-100 hover:border-blue-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
+                  <div key={type.id} className="group bg-gray-50/60 hover:bg-white border border-gray-100 hover:border-blue-200 rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                     <div>
                       <div className="flex justify-between items-start">
                         <h4 className="font-extrabold text-gray-800 text-sm truncate">{type.name}</h4>
-                        <span className="bg-indigo-50 text-indigo-600 font-mono text-[10px] px-2 py-0.5 rounded-md">ID: {type.id}</span>
+                        <span className="bg-indigo-50 text-indigo-600 font-mono text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap">ID: {type.id}</span>
                       </div>
                       <div className="mt-1">
                         {renderSafeImage(type.image, type.name)}
@@ -445,13 +282,12 @@ const ProductTypes = ({
                       <p className="text-xs text-gray-500 mt-2 line-clamp-2 h-8 italic">
                         {type.description || "No specific design context structural details appended."}
                       </p>
-                      {/* Display new fields */}
                       <div className="mt-1 flex flex-wrap gap-1 text-xs">
                         {type.price && <span className="inline-block bg-green-50 text-green-700 px-2 py-0.5 rounded">₹{type.price}</span>}
                         {type.discount && <span className="inline-block bg-red-50 text-red-600 px-2 py-0.5 rounded">{type.discount}% off</span>}
                         {type.rating && <span className="inline-block bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded">⭐ {type.rating}</span>}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500 space-x-2">
+                      <div className="mt-1 text-xs text-gray-500 space-x-2 flex flex-wrap">
                         {type.category_name && <span className="inline-block bg-blue-50 px-2 py-0.5 rounded">Cat: {type.category_name}</span>}
                         {type.product_card_name && <span className="inline-block bg-green-50 px-2 py-0.5 rounded">Prod: {type.product_card_name}</span>}
                       </div>
@@ -476,7 +312,7 @@ const ProductTypes = ({
           </div>
 
           {totalPages > 1 && (
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <span className="text-xs font-bold text-gray-500">Slide <span className="text-blue-600">{activePage}</span> of {totalPages}</span>
               <div className="flex gap-1">
                 {Array.from({ length: totalPages }, (_, i) => (
@@ -485,7 +321,162 @@ const ProductTypes = ({
               </div>
             </div>
           )}
+        </div>
 
+        {/* LEFT COLUMN: FORM - Appears SECOND on mobile (order-2), FIRST on desktop (order-1) */}
+        <div className="w-full lg:w-5/12 order-2 lg:order-1 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm sticky top-6">
+          <h3 className="text-base font-bold text-gray-700 mb-4">
+            {isEditingProductType ? "📝 Modify Product Type" : "✨ Create New Type Node"}
+          </h3>
+          <form onSubmit={handleSaveProductType} className="space-y-3 sm:space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Type Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Branded Attire, Organic Foods"
+                value={productTypeForm.name}
+                onChange={handleNameChange}
+                className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Slug Routing URL</label>
+              <input
+                type="text"
+                placeholder="auto-generated-path"
+                value={productTypeForm.slug}
+                readOnly
+                className="w-full px-3 sm:px-4 py-2 border bg-gray-50 rounded-xl focus:outline-none text-sm text-gray-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description / Spec Details</label>
+              <textarea
+                rows="3"
+                placeholder="Add summary notes regarding metadata properties structure..."
+                value={productTypeForm.description}
+                onChange={(e) => setProductTypeForm(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Image</label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <input
+                  id="imageUploadInput"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {productTypeForm.image && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="w-full sm:w-auto px-3 py-2 bg-red-100 text-red-600 rounded-xl text-sm font-bold hover:bg-red-200 transition"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {productTypeForm.image && (
+                <div className="mt-2">
+                  {renderSafeImage(productTypeForm.image, 'Preview', 'h-16 w-16 object-cover rounded border')}
+                </div>
+              )}
+            </div>
+
+            {/* Price, Discount, Rating */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Price ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={productTypeForm.price || ''}
+                  onChange={(e) => setProductTypeForm(prev => ({ ...prev, price: e.target.value }))}
+                  className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Discount (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={productTypeForm.discount || ''}
+                  onChange={(e) => setProductTypeForm(prev => ({ ...prev, discount: e.target.value }))}
+                  className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Rating (1-5)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="5"
+                placeholder="4.5"
+                value={productTypeForm.rating || ''}
+                onChange={(e) => setProductTypeForm(prev => ({ ...prev, rating: e.target.value }))}
+                className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+
+            {/* Dropdowns */}
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Shop Category</label>
+              <select
+                value={productTypeForm.category_id || ""}
+                onChange={(e) => setProductTypeForm(prev => ({ ...prev, category_id: e.target.value }))}
+                className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">-- None --</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Associated Product Card</label>
+              <select
+                value={productTypeForm.product_card_id || ""}
+                onChange={(e) => setProductTypeForm(prev => ({ ...prev, product_card_id: e.target.value }))}
+                className="w-full px-3 sm:px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">-- None --</option>
+                {productCards.map(card => (
+                  <option key={card.id} value={card.id}>{card.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={isProductTypeUploading}
+                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-md disabled:opacity-50"
+              >
+                {isProductTypeUploading ? "Saving Data..." : isEditingProductType ? "Update Parameters" : "Save Node"}
+              </button>
+              {isEditingProductType && (
+                <button
+                  type="button"
+                  onClick={resetProductTypeForm}
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
         </div>
       </div>
     </div>

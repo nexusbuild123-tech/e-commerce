@@ -15,6 +15,14 @@ app.use(cors({
 app.use(express.json({ limit: '100mb' }));
 
 // Database configuration
+// const dbConfig = {
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_NAME,
+//     port: 3306 // MySQL ka default port 3306 hi hota hai
+// };
+
 const dbConfig = {
     host: "127.0.0.1",
     user: "root",
