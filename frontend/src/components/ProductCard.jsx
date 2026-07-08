@@ -1,65 +1,87 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
+// React Icons Imports
+import { FiArrowRight, FiStar } from 'react-icons/fi';
 
 const ProductCard = ({ product }) => {
+  const containerRef = useRef(null);
+
+  if (!product) return null;
+
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-500 relative flex flex-col h-full">
-      
-      {/* Optional Discount Badge */}
-      {product.discount && (
-        <div className="absolute top-3 left-3 z-10 bg-red-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-          {product.discount}% OFF
+    <div 
+      ref={containerRef}
+      className="w-full sm:w-[340px] lg:w-[360px] p-3 transition-all duration-500 ease-out"
+    >
+      {/* Premium Outer Floating Card */}
+      <div 
+        className="group relative flex flex-col h-[450px] bg-white rounded-[2rem] border border-slate-100/80 overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)]"
+      >
+        
+        {/* Subtle Backdrop Ambient Glow on Hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0">
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-blue-500/5 blur-[80px] rounded-full" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-purple-500/5 blur-[80px] rounded-full" />
         </div>
-      )}
 
-      {/* Image Container with Hover Zoom */}
-      {/* FIXED: PURANE PATH KO /product-types ME BADLA */}
-      <Link to={`/product-types/${product.id}`} className="relative h-60 w-full overflow-hidden bg-gray-50 flex items-center justify-center p-4">
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700 ease-in-out"
-        />
-        {/* Quick View Overlay (Shows on Hover) */}
-        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-          <span className="bg-white/90 backdrop-blur-md text-gray-900 font-semibold px-6 py-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-            View Variants
-          </span>
-        </div>
-      </Link>
-
-      {/* Product Details */}
-      <div className="p-5 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{product.category}</span>
-          <span className="flex items-center text-xs text-amber-500 font-bold bg-amber-50 px-2 py-1 rounded-md">
-            ★ {product.rating || "4.5"}
-          </span>
-        </div>
-        
-        {/* FIXED: PURANE PATH KO /product-types ME BADLA */}
-        <Link to={`/product-types/${product.id}`}>
-          <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-            {product.name}
-          </h3>
-        </Link>
-        
-        <p className="text-gray-500 text-sm mt-2 line-clamp-2 mb-4 flex-grow">
-          {product.description}
-        </p>
-        
-        {/* MODIFIED: Removed Price & Added Premium "Explore Now" Button */}
-        <div className="mt-auto pt-4 border-t border-gray-100">
-          {/* FIXED: PURANE PATH KO /product-types ME BADLA */}
+        {/* 1. Image Studio Frame */}
+        <div className="relative h-56 w-full bg-slate-50/70 p-6 flex items-center justify-center overflow-hidden z-10 transition-colors group-hover:bg-slate-50/30">
           <Link 
-            to={`/product-types/${product.id}`}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all duration-300 transform hover:-translate-y-0.5"
+            to={`/product-types/${product.id}`} 
+            className="w-full h-full flex items-center justify-center transform transition-transform duration-500 ease-out group-hover:scale-105"
           >
-            <span>Explore Now</span>
-            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
+            <img
+              src={product.image || 'https://via.placeholder.com/300x300.png?text=No+Image'}
+              alt={product.name}
+              className="h-[240px] w-full py-5 group-hover:scale-105 transition-all duration-500"
+            />
           </Link>
+          
+          {/* Discount Tag (Glassmorphic Luxury Pill) */}
+          {product.discount && (
+            <span className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-black tracking-wider px-3 py-1.5 rounded-full shadow-sm uppercase animate-pulse">
+              {product.discount}% OFF
+            </span>
+          )}
+          
+          {/* Rating Tag */}
+          <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200/40 text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+            <FiStar className="w-3 h-3 text-amber-500 fill-amber-500" />
+            <span>{product.rating || "4.5"}</span>
+          </div>
         </div>
+
+        {/* 2. Meta and Content Container */}
+        <div className="p-6 flex flex-col flex-grow z-10 bg-white">
+          {/* Category Pill */}
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 block">
+            {product.category || "General"}
+          </span>
+          
+          {/* Product Title */}
+          <Link to={`/product-types/${product.id}`} className="block mb-2">
+            <h3 className="text-lg font-bold text-slate-900 leading-snug hover:text-blue-600 transition-colors line-clamp-2 min-h-[3.5rem]">
+              {product.name}
+            </h3>
+          </Link>
+          
+          {/* Short Description */}
+          <p className="text-xs text-slate-400 font-light line-clamp-3 mb-4 leading-relaxed flex-grow">
+            {product.description || "Premium product curated for an unparalleled experience."}
+          </p>
+
+          {/* 3. Action Footer Area (Price Removed, Full Width Explore More Button) */}
+          <div className="mt-auto pt-2">
+            <Link
+              to={`/product-types/${product.id}`}
+              className="w-full h-12 bg-slate-950 hover:bg-blue-600 text-white text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-[0_12px_24px_-6px_rgba(37,99,235,0.4)] group/btn active:scale-98"
+            >
+              <span>Explore More</span>
+              <FiArrowRight className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+
       </div>
     </div>
   );

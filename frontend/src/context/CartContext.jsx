@@ -16,7 +16,9 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem('cart', JSON.stringify(cartItems));
     }, [cartItems]);
 
-    const addToCart = (product, variant = null) => {
+    const addToCart = (product, variant = null, quantity = 1) => {
+        if (quantity <= 0) return;
+
         const item = {
             id: product.id,
             name: product.name,
@@ -27,7 +29,7 @@ export const CartProvider = ({ children }) => {
                 image: variant.image,
                 availability: variant.is_available
             } : null,
-            quantity: 1
+            quantity: quantity
         };
 
         setCartItems(prev => {
@@ -38,12 +40,27 @@ export const CartProvider = ({ children }) => {
             if (existing) {
                 return prev.map(i =>
                     i.id === item.id && i.variant?.color === item.variant?.color
-                        ? { ...i, quantity: i.quantity + 1 }
+                        ? { ...i, quantity: i.quantity + quantity }
                         : i
                 );
             }
             return [...prev, item];
         });
+    };
+
+    // ✅ NEW: update quantity of a specific item
+    const updateQuantity = (id, variantColor, newQuantity) => {
+        if (newQuantity <= 0) {
+            removeFromCart(id, variantColor);
+            return;
+        }
+        setCartItems(prev =>
+            prev.map(item =>
+                item.id === id && item.variant?.color === variantColor
+                    ? { ...item, quantity: newQuantity }
+                    : item
+            )
+        );
     };
 
     const removeFromCart = (id, variantColor) => {
@@ -66,6 +83,7 @@ export const CartProvider = ({ children }) => {
         <CartContext.Provider value={{
             cartItems,
             addToCart,
+            updateQuantity, // ✅ expose it
             removeFromCart,
             clearCart,
             totalItems,

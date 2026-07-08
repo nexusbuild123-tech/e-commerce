@@ -18,6 +18,7 @@ const ProductDetail = () => {
     const [selectedThumbnail, setSelectedThumbnail] = useState(null);
     const [toast, setToast] = useState(null);
 
+    // ---- Fetch data ----
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -64,6 +65,7 @@ const ProductDetail = () => {
         fetchData();
     }, [id]);
 
+    // ---- Thumbnails ----
     const thumbnails = useMemo(() => {
         const images = [];
         if (selectedColor?.image) images.push(selectedColor.image);
@@ -74,12 +76,14 @@ const ProductDetail = () => {
         return images;
     }, [selectedColor, productType, gallery]);
 
+    // ---- Active image ----
     const activeImage = useMemo(() => {
         if (selectedThumbnail) return selectedThumbnail;
         if (selectedColor?.image) return selectedColor.image;
         return thumbnails.length > 0 ? thumbnails[0] : PLACEHOLDER_IMAGE;
     }, [selectedThumbnail, selectedColor, thumbnails]);
 
+    // ---- Handlers ----
     const handleColorSelect = (color) => {
         setSelectedColor(color);
         setSelectedThumbnail(null);
@@ -91,9 +95,8 @@ const ProductDetail = () => {
 
     const isSelectedColorAvailable = selectedColor ? selectedColor.is_available === true : false;
 
-    // ---- ADD TO CART with Login Check ----
+    // ---- Add to Cart (always adds 1) ----
     const handleAddToCart = () => {
-        // ✅ Check if user is logged in
         const user = localStorage.getItem('user');
         if (!user) {
             setToast({ message: 'Please login to add items to cart.', type: 'error' });
@@ -106,16 +109,15 @@ const ProductDetail = () => {
             setToast({ message: 'This color is out of stock!', type: 'error' });
             return;
         }
-        addToCart(productType, selectedColor);
+        addToCart(productType, selectedColor, 1); // ✅ always 1
         setToast({
             message: `${productType?.name} (${selectedColor.color_name}) added to cart!`,
             type: 'success'
         });
     };
 
-    // ---- BUY NOW with Login Check ----
+    // ---- Buy Now (always 1) ----
     const handleBuyNow = () => {
-        // ✅ Check if user is logged in
         const user = localStorage.getItem('user');
         if (!user) {
             setToast({ message: 'Please login to proceed with purchase.', type: 'error' });
@@ -137,7 +139,7 @@ const ProductDetail = () => {
                     discount: productType.discount,
                     image: productType.image,
                     variant: selectedColor,
-                    quantity: 1
+                    quantity: 1 // ✅ always 1
                 }
             }
         });
@@ -271,8 +273,8 @@ const ProductDetail = () => {
                                 </div>
                             )}
 
-                            {/* ACTION BUTTONS */}
-                            <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                            {/* ACTION BUTTONS – no quantity selector */}
+                            <div className="flex flex-col sm:flex-row gap-4 mt-6">
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={!isSelectedColorAvailable}

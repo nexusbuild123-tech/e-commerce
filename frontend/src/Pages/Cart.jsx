@@ -1,14 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { FaOpencart } from "react-icons/fa";
 
 const Cart = () => {
-    const { cartItems, removeFromCart, clearCart, totalItems, totalPrice } = useCart();
+    const { cartItems, updateQuantity, removeFromCart, clearCart, totalItems, totalPrice } = useCart();
     const navigate = useNavigate();
 
     if (cartItems.length === 0) {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center bg-gray-50">
-                <div className="text-6xl mb-4">🛒</div>
+                <div className="text-6xl mb-4"><FaOpencart /></div>
                 <h2 className="text-2xl font-bold text-gray-700">Your cart is empty</h2>
                 <p className="text-gray-400 mt-2">Looks like you haven't added any items yet.</p>
                 <Link
@@ -25,6 +26,20 @@ const Cart = () => {
         navigate('/checkout', {
             state: { cartItems: cartItems }
         });
+    };
+
+    // ✅ Quantity handlers for each item
+    const increaseQty = (item) => {
+        updateQuantity(item.id, item.variant?.color || 'default', item.quantity + 1);
+    };
+
+    const decreaseQty = (item) => {
+        if (item.quantity > 1) {
+            updateQuantity(item.id, item.variant?.color || 'default', item.quantity - 1);
+        } else {
+            // If quantity is 1, remove the item
+            removeFromCart(item.id, item.variant?.color || 'default');
+        }
     };
 
     return (
@@ -50,9 +65,25 @@ const Cart = () => {
                                 <p className="text-sm font-semibold text-blue-600">₹{item.price}</p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-sm text-gray-500">Qty: {item.quantity}</span>
+                                {/* ✅ Quantity controls */}
+                                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                                    <button
+                                        onClick={() => decreaseQty(item)}
+                                        className="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-bold"
+                                        disabled={item.quantity <= 1}
+                                    >
+                                        −
+                                    </button>
+                                    <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
+                                    <button
+                                        onClick={() => increaseQty(item)}
+                                        className="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-bold"
+                                    >
+                                        +
+                                    </button>
+                                </div>
                                 <button
-                                    onClick={() => removeFromCart(item.id, item.variant?.color)}
+                                    onClick={() => removeFromCart(item.id, item.variant?.color || 'default')}
                                     className="text-red-500 hover:text-red-700 font-bold text-sm"
                                 >
                                     Remove
