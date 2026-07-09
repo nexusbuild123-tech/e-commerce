@@ -15,14 +15,6 @@ app.use(cors({
 app.use(express.json({ limit: '100mb' }));
 
 // Database configuration
-// const dbConfig = {
-//     host: process.env.DB_HOST,
-//     user: process.env.DB_USER,
-//     password: process.env.DB_PASSWORD,
-//     database: process.env.DB_NAME,
-//     port: 3306 // MySQL ka default port 3306 hi hota hai
-// };
-
 const dbConfig = {
     host: "127.0.0.1",
     user: "root",
@@ -273,7 +265,7 @@ app.put("/update-location", authenticateApiKey, async (req, res) => {
 });
 
 // ==========================================
-// ADMIN PANEL (unchanged)
+// ADMIN PANEL
 // ==========================================
 
 app.post("/admin/login", authenticateApiKey, async (req, res) => {
@@ -306,7 +298,7 @@ app.get("/admin/login", (req, res) => {
 });
 
 // ==========================================
-// BANNER MANAGEMENT (unchanged)
+// BANNER MANAGEMENT
 // ==========================================
 
 app.get("/banners", async (req, res) => {
@@ -343,7 +335,7 @@ app.delete("/admin/delete-banner/:banner_id", authenticateApiKey, async (req, re
 });
 
 // ==========================================
-// PRODUCT CARD MANAGEMENT (unchanged)
+// PRODUCT CARD MANAGEMENT
 // ==========================================
 
 app.get("/product-cards", async (req, res) => {
@@ -395,7 +387,7 @@ app.delete("/admin/delete-product-card/:id", authenticateApiKey, async (req, res
 });
 
 // ==========================================
-// SHOP CATEGORY MANAGEMENT (unchanged)
+// SHOP CATEGORY MANAGEMENT
 // ==========================================
 
 app.get("/categories", async (req, res) => {
@@ -439,7 +431,7 @@ app.delete("/admin/delete-category/:id", authenticateApiKey, async (req, res) =>
 });
 
 // ==========================================
-// PRODUCT TYPES MANAGEMENT (unchanged)
+// PRODUCT TYPES MANAGEMENT
 // ==========================================
 
 app.get("/product-types", async (req, res) => {
@@ -536,7 +528,7 @@ app.delete("/admin/delete-product-type/:id", authenticateApiKey, async (req, res
 });
 
 // ==========================================
-// PRODUCT COLOR VARIANTS (unchanged)
+// PRODUCT COLOR VARIANTS
 // ==========================================
 
 app.get("/product-color-variants/:productTypeId", async (req, res) => {
@@ -612,7 +604,7 @@ app.delete("/admin/product-color-variants/:id", authenticateApiKey, async (req, 
 });
 
 // ==========================================
-// PRODUCT TYPE GALLERY (unchanged)
+// PRODUCT TYPE GALLERY
 // ==========================================
 
 app.get("/product-type-gallery/:productTypeId", async (req, res) => {
@@ -658,7 +650,7 @@ app.delete("/admin/product-type-gallery/:id", authenticateApiKey, async (req, re
 });
 
 // ==========================================
-// ORDERS ROUTES (unchanged)
+// ORDERS ROUTES
 // ==========================================
 
 app.post("/place-order", async (req, res) => {
@@ -796,19 +788,16 @@ app.post("/cancel-order/:id", async (req, res) => {
     }
 });
 
-
 // ==========================================
 // FORGOT PASSWORD ROUTES
 // ==========================================
 
-// 1. Send OTP for password reset
 app.post("/forgot-password", authenticateApiKey, async (req, res) => {
     const { email } = req.body;
     if (!email) {
         return res.status(400).json({ status: "error", message: "Email is required!" });
     }
 
-    // Check if email exists
     try {
         const [rows] = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
         if (rows.length === 0) {
@@ -818,12 +807,9 @@ app.post("/forgot-password", authenticateApiKey, async (req, res) => {
         return res.status(500).json({ status: "error", message: err.message });
     }
 
-    // Generate OTP
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    // Store with a prefix to differentiate from registration OTP
     otpStore[`reset_${email}`] = generatedOtp;
 
-    // Send email
     let emailSent = false;
     if (transporter) {
         try {
@@ -860,7 +846,6 @@ app.post("/forgot-password", authenticateApiKey, async (req, res) => {
     });
 });
 
-// 2. Verify OTP and reset password
 app.post("/reset-password", authenticateApiKey, async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
@@ -868,16 +853,13 @@ app.post("/reset-password", authenticateApiKey, async (req, res) => {
         return res.status(400).json({ status: "error", message: "Email, OTP and new password are required!" });
     }
 
-    // Check OTP
     const storedOtp = otpStore[`reset_${email}`];
     if (!storedOtp || storedOtp !== otp) {
         return res.status(400).json({ status: "error", message: "Invalid or expired OTP!" });
     }
 
-    // Delete OTP after successful verification
     delete otpStore[`reset_${email}`];
 
-    // Update password in database
     try {
         await pool.execute("UPDATE users SET password = ? WHERE email = ?", [newPassword, email]);
         return res.status(200).json({ status: "success", message: "Password updated successfully!" });
@@ -886,6 +868,110 @@ app.post("/reset-password", authenticateApiKey, async (req, res) => {
     }
 });
 
+// ==========================================
+// RETURN REQUESTS ROUTES
+// ==========================================
+
+// Public: Submit a return request for an order
+app.post("/return-order/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ status: "error", message: "Email is required" });
+    }
+
+    try {
+        const [rows] = await pool.execute("SELECT * FROM orders WHERE id = ?", [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ status: "error", message: "Order not found" });
+        }
+        const order = rows[0];
+
+        if (order.customer_email !== email) {
+            return res.status(403).json({ status: "error", message: "You are not authorized to return this order" });
+        }
+
+        if (order.status !== 'delivered') {
+            return res.status(400).json({ status: "error", message: "Only delivered orders can be returned" });
+        }
+
+        const [existing] = await pool.execute("SELECT id FROM return_requests WHERE order_id = ?", [id]);
+        if (existing.length > 0) {
+            return res.status(409).json({ status: "error", message: "Return request already submitted for this order" });
+        }
+
+        await pool.execute(
+            `INSERT INTO return_requests 
+             (order_id, customer_email, customer_name, customer_phone, product_name, variant_name, reason)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+                order.id,
+                order.customer_email,
+                order.customer_name,
+                order.customer_phone,
+                order.product_name,
+                order.variant_name,
+                reason || ''
+            ]
+        );
+
+        return res.status(201).json({ status: "success", message: "Return request submitted. We will contact you shortly." });
+    } catch (err) {
+        console.error("❌ Return request error:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// ✅ NEW: Get all return requests for a specific user (by email)
+app.get("/my-returns/:email", async (req, res) => {
+    const { email } = req.params;
+    if (!email) {
+        return res.status(400).json({ status: "error", message: "Email is required" });
+    }
+    try {
+        const [requests] = await pool.execute(
+            `SELECT r.*, o.product_name, o.variant_name, o.total, o.status AS order_status 
+             FROM return_requests r
+             JOIN orders o ON r.order_id = o.id
+             WHERE r.customer_email = ?
+             ORDER BY r.created_at DESC`,
+            [email]
+        );
+        return res.status(200).json({ status: "success", requests });
+    } catch (err) {
+        console.error("❌ Error fetching user returns:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Get all return requests
+app.get("/admin/return-requests", authenticateApiKey, async (req, res) => {
+    try {
+        const [requests] = await pool.execute("SELECT * FROM return_requests ORDER BY created_at DESC");
+        return res.status(200).json({ status: "success", requests });
+    } catch (err) {
+        console.error("❌ Error fetching return requests:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// Admin: Update return request status
+app.put("/admin/return-requests/:id", authenticateApiKey, async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!status) {
+        return res.status(400).json({ status: "error", message: "Status is required" });
+    }
+    try {
+        await pool.execute("UPDATE return_requests SET status = ? WHERE id = ?", [status, id]);
+        return res.status(200).json({ status: "success", message: "Return request status updated" });
+    } catch (err) {
+        console.error("❌ Error updating return request:", err);
+        return res.status(500).json({ status: "error", message: err.message });
+    }
+});
 
 // ==========================================
 // START SERVER

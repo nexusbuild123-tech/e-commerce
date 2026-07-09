@@ -7,6 +7,7 @@ import ProductTypes from "./ProductTypes";
 import ProductDetails from "./ProductDetails";
 import Orders from "./Orders";
 import OrderHistory from "./OrderHistory";
+import ReturnRequests from "./ReturnRequests"; // ✅ NEW
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -310,6 +311,7 @@ const Dashboard = () => {
     { name: "Product Details", icon: "📦" },
     { name: "Order", icon: "🛒" },
     { name: "Order History", icon: "📜" },
+    { name: "Return Requests", icon: "🔄" }, // ✅ NEW
   ];
 
   // ==========================================
@@ -318,7 +320,6 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "Dashboard": {
-        // ✅ Corrected stats
         const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
         const completedOrders = orders.filter(o => o.status === 'delivered' || o.status === 'cancelled');
 
@@ -327,9 +328,9 @@ const Dashboard = () => {
           { name: "Shop By Category", count: categories.length, icon: "🏷️", bg: "bg-purple-50 text-purple-600 border-purple-200" },
           { name: "Product Types", count: productTypes.length, icon: "🗂️", bg: "bg-indigo-50 text-indigo-600 border-indigo-200" },
           { name: "Product Card", count: products.length, icon: "💳", bg: "bg-green-50 text-green-600 border-green-200" },
-          { name: "Product Details", count: productTypes.length, icon: "📦", bg: "bg-amber-50 text-amber-600 border-amber-200" }, // ✅ uses productTypes count
-          { name: "Order", count: activeOrders.length, icon: "🛒", bg: "bg-rose-50 text-rose-600 border-rose-200" }, // ✅ active orders
-          { name: "Order History", count: completedOrders.length, icon: "📜", bg: "bg-gray-50 text-gray-600 border-gray-200" }, // ✅ completed orders
+          { name: "Product Details", count: productTypes.length, icon: "📦", bg: "bg-amber-50 text-amber-600 border-amber-200" },
+          { name: "Order", count: activeOrders.length, icon: "🛒", bg: "bg-rose-50 text-rose-600 border-rose-200" },
+          { name: "Order History", count: completedOrders.length, icon: "📜", bg: "bg-gray-50 text-gray-600 border-gray-200" },
         ];
 
         return (
@@ -408,6 +409,9 @@ const Dashboard = () => {
 
       case "Order History":
         return <OrderHistory />;
+
+      case "Return Requests": // ✅ NEW
+        return <ReturnRequests />;
 
       default:
         return null;

@@ -14,6 +14,13 @@ import Profile from './components/Profile';
 import AllProducts from './Pages/AllProducts';
 import TrackOrder from './Pages/TrackOrders';
 import 'leaflet/dist/leaflet.css';
+import AboutUs from './Pages/AboutUs';
+import ContactUs from './Pages/ContactUs';
+import FAQ from './Pages/FAQ';
+import Cancellation from './Pages/Cancellation';
+import RefundPolicy from './Pages/RefundPolicy';
+import TermsOfUse from './Pages/TermsOfUse';
+import PrivacyPolicy from './Pages/PrivacyPolicy';
 
 function App() {
   return (
@@ -30,6 +37,14 @@ function App() {
                 <Route path="/products" element={<AllProducts />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
+
+                <Route path="/about-us" element={<AboutUs />} />
+                <Route path="/contact-us" element={<ContactUs />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/cancellation" element={<Cancellation />} />
+                <Route path="/refund-policy" element={<RefundPolicy />} />
+                <Route path="/terms-of-use" element={<TermsOfUse />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
                 {/* ✅ Protected Routes */}
                 <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
