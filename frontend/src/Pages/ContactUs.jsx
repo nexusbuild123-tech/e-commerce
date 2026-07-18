@@ -1,6 +1,27 @@
+// Fix: Imported useEffect from react
+import { useEffect } from "react";
+// Fix: Imported useLocation from react-router-dom to track route changes
+import { useLocation } from "react-router-dom";
 import { FiPhone, FiMail, FiMapPin } from "react-icons/fi";
 
 const ContactUs = () => {
+  const { pathname } = useLocation();
+
+  // 100% Bulletproof Scroll to Top Fix
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    
+    const timeoutId = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, 10);
+
+    return () => clearTimeout(timeoutId);
+  }, [pathname]);
+
   return (
     // Perfectly matching your Home and About page background (#fcfdfd)
     <div className="min-h-screen bg-[#fcfdfd] text-gray-800 pt-16 pb-24 relative overflow-hidden font-sans">
@@ -17,14 +38,17 @@ const ContactUs = () => {
             Get In Touch
           </span>
           <h1 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-tight mt-4 mb-6 leading-tight">
-            Contact <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 [-webkit-background-clip:text] [-webkit-text-fill-color:transparent]">Us</span>
+            Contact{" "}
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 [-webkit-background-clip:text] [-webkit-text-fill-color:transparent]">
+              Us
+            </span>
           </h1>
-          {/* Enhanced Visibility: Darker color and solid readable weight */}
           <p className="text-gray-700 text-base sm:text-xl font-normal leading-relaxed max-w-xl mx-auto">
-            Have questions or need assistance? We are here to help you build a seamless experience.
+            Have questions or need assistance? We are here to help you build a
+            seamless experience.
           </p>
         </div>
-        
+
         {/* --- CONTACT CARDS GRID --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           
@@ -34,8 +58,13 @@ const ContactUs = () => {
               <FiPhone className="w-5 h-5" />
             </span>
             <h3 className="text-gray-900 font-bold text-lg mb-2">Call Us</h3>
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">Customer Support</p>
-            <a href="tel:9899518819" className="text-purple-600 font-semibold hover:text-purple-700 hover:underline transition-colors text-base sm:text-lg">
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">
+              Customer Support
+            </p>
+            <a
+              href="tel:9899518819"
+              className="text-purple-600 font-semibold hover:text-purple-700 hover:underline transition-colors text-base sm:text-lg"
+            >
               9899518819
             </a>
           </div>
@@ -46,8 +75,13 @@ const ContactUs = () => {
               <FiMail className="w-5 h-5" />
             </span>
             <h3 className="text-gray-900 font-bold text-lg mb-2">Email Us</h3>
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">Direct Queries</p>
-            <a href="mailto:crmtraders25@gmail.com" className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors text-base sm:text-lg break-all">
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">
+              Direct Queries
+            </p>
+            <a
+              href="mailto:crmtraders25@gmail.com"
+              className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors text-base sm:text-lg break-all"
+            >
               crmtraders25@gmail.com
             </a>
           </div>
@@ -58,14 +92,15 @@ const ContactUs = () => {
               <FiMapPin className="w-5 h-5" />
             </span>
             <h3 className="text-gray-900 font-bold text-lg mb-2">Location</h3>
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">Headquarters</p>
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">
+              Headquarters
+            </p>
             <p className="text-gray-800 font-semibold text-base sm:text-lg">
-              New Delhi, India
+              WestBengal, India
             </p>
           </div>
 
         </div>
-
       </div>
     </div>
   );

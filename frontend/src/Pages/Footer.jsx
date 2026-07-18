@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-// React Icons Imports
+// React Icons Imports - Changed FaXTwitter to FaYoutube
 import { 
   FaFacebookF, 
   FaInstagram, 
-  FaXTwitter 
+  FaYoutube 
 } from "react-icons/fa6";
 import { 
   FiPhone, 
@@ -11,7 +11,7 @@ import {
 } from "react-icons/fi";
 
 const Footer = () => {
-  // --- EXPLICIT LINK CONFIGURATIONS (Keeps UI identical but sets absolute correct links) ---
+  // --- EXPLICIT LINK CONFIGURATIONS ---
   const companyLinks = [
     { name: 'About Us', path: '/about-us' },
     { name: 'Contact Us', path: '/contact-us' }
@@ -29,10 +29,23 @@ const Footer = () => {
     { name: 'Privacy Policy', path: '/privacy-policy' }
   ];
 
+  // Updated with exact profile links & replaced Twitter with YouTube
   const socialLinks = [
-    { label: 'Facebook', href: 'https://facebook.com', icon: <FaFacebookF className="w-4 h-4" /> },
-    { label: 'Instagram', href: 'https://instagram.com', icon: <FaInstagram className="w-4 h-4" /> },
-    { label: 'X', href: 'https://x.com', icon: <FaXTwitter className="w-4 h-4" /> },
+    { 
+      label: 'Facebook', 
+      href: 'https://www.facebook.com/profile.php?id=100089161612316', 
+      icon: <FaFacebookF className="w-4 h-4" /> 
+    },
+    { 
+      label: 'Instagram', 
+      href: 'https://www.instagram.com/crmtraders/', 
+      icon: <FaInstagram className="w-4 h-4" /> 
+    },
+    { 
+      label: 'YouTube', 
+      href: 'https://www.youtube.com/@crmtraders5504', 
+      icon: <FaYoutube className="w-4 h-4" /> 
+    },
   ];
 
   return (
@@ -45,7 +58,7 @@ const Footer = () => {
       <div className="max-w-[90rem] mx-auto px-6 sm:px-10 lg:px-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-8 lg:gap-16 pb-20">
           
-          {/* Brand & Socials (Spans 4 cols on Desktop) */}
+          {/* Brand & Socials */}
           <div className="md:col-span-12 lg:col-span-4 flex flex-col items-start text-left">
             <Link to="/" className="inline-block group mb-6">
               <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tighter transition-transform active:scale-98">
@@ -75,7 +88,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Navigation Grid (Spans 8 cols on Desktop) */}
+          {/* Navigation Grid */}
           <div className="md:col-span-12 lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-10">
             {/* Links Group 1 - Company */}
             <div className="flex flex-col">

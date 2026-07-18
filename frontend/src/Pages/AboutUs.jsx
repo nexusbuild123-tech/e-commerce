@@ -1,7 +1,28 @@
+// Fix: Imported useEffect from react
+import { useEffect } from "react";
+// Fix: Imported useLocation from react-router-dom to watch route paths
+import { useLocation } from "react-router-dom";
 // Fixed Import: Removed unused icons to fix ESLint 'no-unused-vars' warnings
 import { FiShield, FiShoppingBag, FiTruck, FiHeadphones } from "react-icons/fi";
 
 const AboutUs = () => {
+  const { pathname } = useLocation();
+
+  // 100% Bulletproof Scroll to Top Fix
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    
+    const timeoutId = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, 10);
+
+    return () => clearTimeout(timeoutId);
+  }, [pathname]);
+
   const stats = [
     { label: "Curated Collection", value: "Premium Quality", icon: <FiShoppingBag className="w-5 h-5 text-purple-600" /> },
     { label: "Processing & Delivery", value: "Fast Dispatch", icon: <FiTruck className="w-5 h-5 text-blue-600" /> },
@@ -25,6 +46,7 @@ const AboutUs = () => {
   ];
 
   return (
+    // Perfectly matching your home page background (#fcfdfd)
     <div className="min-h-screen bg-[#fcfdfd] text-gray-800 pt-16 pb-24 relative overflow-hidden font-sans">
       
       {/* Soft, Subtle Pastel Ambient Glows */}
